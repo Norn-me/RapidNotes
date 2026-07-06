@@ -1,0 +1,2573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rapid Notes</title>
+<meta name="description" content="Rapid Notes — fast, shorthand-driven note capture. Offline-first PWA.">
+<meta name="theme-color" content="#161e17">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rapid Notes">
+<link rel="stylesheet" href="Design System/styles.css">
+<script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
+<style>
+/* ============================================================
+   Rapid Notes — local overrides on top of the JigsawNote
+   design system. The DS default radius scale is "clean-minimal"
+   (8/12/14); Rapid Notes intentionally layers a softer
+   "bubble-rounded" scale on top for a friendlier capture feel.
+   ============================================================ */
+:root {
+  --radius-small: 14px;
+  --radius-medium: 18px;
+  --radius-large: 24px;
+  --radius-bubble: 28px;
+
+  --bar-h: 56px;
+  --dock-h: 72px;
+  --kb: 0px; /* keyboard height, set from visualViewport */
+
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+html, body { height: 100%; }
+body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
+}
+button { font-family: var(--font-sans); }
+.hidden { display: none !important; }
+
+/* ---------- App bar ---------- */
+#appbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+  height: calc(var(--bar-h) + var(--sat));
+  padding: var(--sat) calc(var(--space-2) + var(--sar)) 0 calc(var(--space-2) + var(--sal));
+  display: flex; align-items: center; gap: var(--space-1);
+  background: rgba(22,30,23,0.92);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-divider);
+}
+#barTitle {
+  flex: 1; min-width: 0;
+  font-family: var(--font-display); font-weight: var(--fw-semibold);
+  font-size: var(--text-large); letter-spacing: var(--tracking-tight);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding: 0 var(--space-2);
+}
+.ibtn {
+  appearance: none; border: 0; background: transparent; color: var(--color-foreground);
+  width: 44px; height: 44px; border-radius: var(--radius-full);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 22px; cursor: pointer; flex: 0 0 auto;
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.ibtn:active { background: var(--color-default-flat); transform: scale(0.94); }
+.ibtn.accent { color: var(--color-primary); }
+.ibtn.danger { color: var(--color-danger-600); }
+
+/* ---------- Search bar ---------- */
+#searchBar {
+  position: fixed; top: calc(var(--bar-h) + var(--sat)); left: 0; right: 0; z-index: 39;
+  padding: var(--space-2) var(--space-4);
+  background: rgba(22,30,23,0.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-divider);
+  display: flex; gap: var(--space-2); align-items: center;
+}
+#searchInput {
+  flex: 1; min-width: 0; font-size: 16px; /* ≥16px prevents iOS zoom */
+  background: var(--surface-card); color: var(--color-foreground);
+  border: 1px solid var(--color-border); border-radius: var(--radius-bubble);
+  padding: 10px 16px; outline: none; font-family: var(--font-sans);
+}
+#searchInput:focus { border-color: var(--color-primary-400); }
+
+/* ---------- Select-mode toolbar ---------- */
+#selectBar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  height: calc(var(--bar-h) + var(--sat));
+  padding: var(--sat) var(--space-2) 0 var(--space-2);
+  display: flex; align-items: center; gap: var(--space-1);
+  background: var(--color-primary-100);
+  border-bottom: 1px solid var(--color-primary-200);
+}
+#selCount { flex: 1; font-weight: var(--fw-semibold); padding-left: var(--space-2); }
+
+/* ---------- Main scroll area ---------- */
+#main {
+  padding: calc(var(--bar-h) + var(--sat) + var(--space-3))
+           calc(var(--space-4) + var(--sar))
+           calc(var(--dock-h) + var(--sab) + var(--space-6))
+           calc(var(--space-4) + var(--sal));
+  max-width: 720px; margin: 0 auto;
+}
+body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(--space-3)); }
+
+/* ---------- Home dashboard ---------- */
+#greetHi {
+  font-family: var(--font-display); font-size: var(--display-xs);
+  font-weight: var(--fw-bold); letter-spacing: var(--tracking-tight);
+  margin: var(--space-2) 0 2px;
+}
+#greetDate { color: var(--text-muted); font-size: var(--text-small); margin-bottom: var(--space-4); }
+.h-label {
+  font-size: var(--text-tiny); font-weight: var(--fw-semibold);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-subtle);
+  margin: var(--space-5) 0 var(--space-2);
+  display: flex; align-items: center; gap: var(--space-2);
+}
+.chip-strip { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.chip-strip::-webkit-scrollbar { display: none; }
+.f-chip {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface-card); border: 1px solid var(--color-divider);
+  color: var(--color-foreground); border-radius: var(--radius-bubble);
+  padding: 9px 16px; font-size: var(--text-small); font-weight: var(--fw-medium);
+  cursor: pointer; min-height: 40px;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.f-chip:active { background: var(--surface-raised); }
+.f-chip .iconify { color: var(--color-primary); font-size: 17px; }
+.f-chip.add { border-style: dashed; color: var(--text-muted); }
+
+/* ---------- AI card & banner ---------- */
+#aiCard {
+  background: linear-gradient(135deg, var(--color-primary-50), var(--surface-card));
+  border: 1px solid var(--color-primary-100);
+  border-radius: var(--radius-large); padding: var(--space-4);
+  margin-top: var(--space-3);
+}
+#aiCard .ai-head { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+#aiCard .ai-head .iconify { color: var(--color-primary); font-size: 18px; }
+#aiCard .ai-head b { flex: 1; font-size: var(--text-small); }
+#aiOverview { font-size: var(--text-small); line-height: var(--leading-small); color: var(--color-foreground); }
+.ai-item {
+  display: flex; gap: var(--space-2); align-items: flex-start;
+  font-size: var(--text-small); color: var(--jn-ink);
+  padding: 8px 10px; margin-top: 6px; cursor: pointer;
+  background: rgba(0,0,0,0.18); border-radius: var(--radius-small);
+}
+.ai-item .iconify { color: var(--color-secondary); flex: 0 0 auto; margin-top: 2px; }
+#aiBanner {
+  display: flex; align-items: center; gap: var(--space-2);
+  background: var(--color-warning-flat); border: 1px solid rgba(245,165,36,0.35);
+  color: var(--color-warning-700); border-radius: var(--radius-medium);
+  padding: 10px 14px; font-size: var(--text-small); margin-bottom: var(--space-3);
+}
+#aiBanner span.msg { flex: 1; }
+
+/* ---------- Entry rows (swipeable) ---------- */
+.row-wrap { position: relative; margin-bottom: var(--space-2); border-radius: var(--radius-large); overflow: hidden; }
+.under {
+  position: absolute; inset: 0; display: flex; align-items: center;
+  font-size: 22px; padding: 0 var(--space-5); border-radius: var(--radius-large);
+}
+.under-l { justify-content: flex-start; background: var(--color-primary-100); color: var(--color-primary); }
+.under-r { justify-content: flex-end; background: var(--color-danger-100); color: var(--color-danger-600); }
+.row {
+  position: relative; background: var(--surface-card);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-large);
+  padding: var(--space-3) var(--space-4);
+  display: flex; gap: var(--space-3); align-items: center;
+  cursor: pointer; will-change: transform;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.row:active { background: var(--surface-raised); }
+.row-main { flex: 1; min-width: 0; }
+.row-title {
+  font-weight: var(--fw-semibold); font-size: var(--text-medium);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.row-snippet {
+  color: var(--text-muted); font-size: var(--text-small);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
+}
+.row-meta {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 6px; font-size: var(--text-tiny); color: var(--text-subtle);
+}
+.row-meta .iconify { font-size: 13px; }
+.row-meta .pin-ico { color: var(--color-secondary); }
+.tag-pill {
+  background: var(--color-primary-flat); color: var(--color-primary-600);
+  border-radius: var(--radius-full); padding: 2px 9px;
+  font-size: var(--text-tiny); font-weight: var(--fw-medium);
+}
+.row-check {
+  flex: 0 0 auto; width: 24px; height: 24px; border-radius: var(--radius-full);
+  border: 2px solid var(--color-default-400);
+  display: flex; align-items: center; justify-content: center;
+  color: transparent; font-size: 14px;
+}
+.row.selected { border-color: var(--color-primary-400); background: var(--color-primary-50); }
+.row.selected .row-check { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-primary-foreground); }
+.row.dragging { opacity: 0.5; }
+
+/* Category sections in the rapid list */
+.cat-section { margin-bottom: var(--space-4); }
+.cat-section.drop-hover .h-label { color: var(--color-primary); }
+.cat-section.drop-hover { outline: 2px dashed var(--color-primary-300); outline-offset: 4px; border-radius: var(--radius-medium); }
+.empty-note {
+  color: var(--text-subtle); font-size: var(--text-small);
+  text-align: center; padding: var(--space-8) var(--space-4);
+}
+.h-label.filterable { cursor: pointer; }
+.cat-section.filtered .h-label { color: var(--color-primary); }
+
+/* checklist + link + media previews inside entry cards */
+.row-snippet a, .row-title a {
+  color: var(--color-primary-600); text-decoration: underline;
+  text-decoration-color: rgba(76,211,111,0.4);
+}
+.row-ck { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
+.row-ck-item {
+  font-size: var(--text-tiny); color: var(--text-muted);
+  display: flex; gap: 6px; align-items: baseline;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.row-ck-item.done { text-decoration: line-through; opacity: 0.5; }
+.row-media { margin-top: 8px; }
+.row-media img { max-width: 100%; max-height: 180px; border-radius: var(--radius-medium); display: block; }
+.row-media audio { width: 100%; height: 36px; display: block; margin-top: 6px; }
+
+/* recording overlay */
+#recOverlay {
+  position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.92);
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+  gap: var(--space-6); color: #fff;
+}
+#recDot {
+  width: 20px; height: 20px; border-radius: var(--radius-full);
+  background: var(--color-danger); animation: pulse 1.4s ease-in-out infinite;
+}
+#recTime {
+  font-family: var(--font-display); font-size: 42px; font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums; letter-spacing: var(--tracking-tight);
+}
+
+/* sidebar bin count */
+.badge-count {
+  background: var(--color-danger); color: #fff;
+  border-radius: var(--radius-full); font-size: 11px; font-weight: var(--fw-bold);
+  min-width: 18px; height: 18px; padding: 0 5px;
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+}
+
+/* AI card scope selector */
+.ai-scope {
+  background: transparent; border: 0; outline: none; cursor: pointer;
+  color: var(--text-muted); font-family: var(--font-sans);
+  font-size: var(--text-tiny); font-weight: var(--fw-semibold); max-width: 140px;
+}
+.ai-scope:hover { color: var(--color-primary); }
+/* ---------- Bottom dock (rapid capture) ---------- */
+#dock {
+  position: fixed; left: 0; right: 0; z-index: 45;
+  bottom: calc(var(--kb) + var(--sab));
+  padding: var(--space-2) calc(var(--space-3) + var(--sar)) var(--space-2) calc(var(--space-3) + var(--sal));
+  display: flex; gap: var(--space-2); align-items: center;
+  max-width: 720px; margin: 0 auto;
+}
+#dock::before {
+  content: ""; position: absolute; inset: calc(-1 * var(--space-4)) 0 calc(-1 * var(--sab)) 0;
+  background: linear-gradient(to top, var(--color-background) 65%, transparent);
+  pointer-events: none; z-index: -1;
+}
+#logInput {
+  flex: 1; min-width: 0; font-size: 16px; font-family: var(--font-sans);
+  background: var(--surface-card); color: var(--color-foreground);
+  border: 1px solid var(--color-border); border-radius: var(--radius-bubble);
+  padding: 13px 18px; outline: none; box-shadow: var(--shadow-small);
+}
+#logInput:focus { border-color: var(--color-primary-400); }
+.dock-btn {
+  appearance: none; border: 0; cursor: pointer; flex: 0 0 auto;
+  width: 48px; height: 48px; border-radius: var(--radius-full);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 21px;
+  background: var(--surface-card); color: var(--color-foreground);
+  border: 1px solid var(--color-border); box-shadow: var(--shadow-small);
+  transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.dock-btn:active { transform: scale(0.92); }
+.dock-btn.primary { background: var(--color-primary); color: var(--color-primary-foreground); border-color: transparent; box-shadow: var(--shadow-primary); }
+.dock-btn.recording { background: var(--color-danger); color: #fff; border-color: transparent; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(243,18,96,0.18); } }
+
+/* ---------- Editor ---------- */
+#editorView {
+  position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column;
+  background: var(--color-background);
+  padding-top: var(--sat);
+}
+#edBar { display: flex; align-items: center; gap: var(--space-1); height: var(--bar-h); padding: 0 var(--space-2); flex: 0 0 auto; }
+#edBar .spacer { flex: 1; }
+#edTitle {
+  font-family: var(--font-display); font-size: 22px; font-weight: var(--fw-bold);
+  background: transparent; border: 0; outline: none; color: var(--color-foreground);
+  padding: var(--space-1) var(--space-5); width: 100%; letter-spacing: var(--tracking-tight);
+}
+#edTags { display: flex; flex-wrap: wrap; gap: 6px; padding: var(--space-1) var(--space-5) var(--space-2); }
+.ed-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--color-primary-flat); color: var(--color-primary-600);
+  border-radius: var(--radius-full); padding: 4px 12px;
+  font-size: var(--text-tiny); font-weight: var(--fw-medium); cursor: pointer; border: 0;
+}
+.ed-tag.add { background: transparent; border: 1px dashed var(--color-border); color: var(--text-muted); }
+#edBody {
+  flex: 1; overflow-y: auto; outline: none;
+  padding: var(--space-2) var(--space-5) calc(var(--space-16) + var(--kb));
+  font-size: 16px; line-height: 1.6; -webkit-user-modify: read-write-plaintext-only;
+}
+#edBody:empty::before { content: attr(data-ph); color: var(--text-subtle); }
+#edBody .ck { display: flex; align-items: flex-start; gap: 10px; margin: 3px 0; }
+#edBody .ck input[type=checkbox] {
+  appearance: none; width: 20px; height: 20px; margin: 3px 0 0; flex: 0 0 auto;
+  border: 2px solid var(--color-default-400); border-radius: 7px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent;
+}
+#edBody .ck input[type=checkbox]:checked { background: var(--color-primary); border-color: var(--color-primary); }
+#edBody .ck input[type=checkbox]:checked::after { content: "✓"; color: var(--color-primary-foreground); font-size: 13px; font-weight: 700; }
+#edBody .ck input[type=checkbox]:checked ~ span { text-decoration: line-through; color: var(--text-subtle); }
+#edBody .ck span { flex: 1; min-width: 0; }
+#edToolbar {
+  flex: 0 0 auto; display: flex; gap: 2px; align-items: center;
+  padding: var(--space-1) var(--space-3) calc(var(--space-1) + max(var(--sab) - var(--kb), 0px) + var(--kb));
+  border-top: 1px solid var(--color-divider);
+  background: var(--surface-sidebar); overflow-x: auto; scrollbar-width: none;
+}
+#edToolbar::-webkit-scrollbar { display: none; }
+#edToolbar .ibtn { width: 44px; height: 44px; font-size: 19px; border-radius: var(--radius-small); }
+#edToolbar .sep { width: 1px; height: 22px; background: var(--color-divider); margin: 0 var(--space-1); flex: 0 0 auto; }
+#edMedia { padding: 0 var(--space-5); }
+.media-card {
+  position: relative; margin: var(--space-2) 0; border-radius: var(--radius-medium);
+  overflow: hidden; border: 1px solid var(--color-divider); background: var(--surface-card);
+}
+.media-card img { display: block; width: 100%; max-height: 320px; object-fit: cover; }
+.media-card audio { display: block; width: 100%; }
+.media-card .rm {
+  position: absolute; top: 8px; right: 8px; width: 32px; height: 32px;
+  border: 0; border-radius: var(--radius-full); cursor: pointer;
+  background: rgba(0,0,0,0.55); color: #fff; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+}
+#edMeta { color: var(--text-subtle); font-size: var(--text-tiny); padding: 0 var(--space-5) var(--space-2); }
+
+/* ---------- Sidebar drawer ---------- */
+#scrim {
+  position: fixed; inset: 0; z-index: 70; background: var(--color-overlay);
+  opacity: 0; pointer-events: none; transition: opacity var(--dur-base) var(--ease-out);
+}
+#scrim.show { opacity: 1; pointer-events: auto; }
+#sidebar {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 71;
+  width: min(310px, 84vw);
+  background: var(--surface-sidebar);
+  padding: calc(var(--sat) + var(--space-4)) var(--space-3) calc(var(--sab) + var(--space-4)) calc(var(--space-3) + var(--sal));
+  transform: translateX(-105%); transition: transform var(--dur-slow) var(--ease-out);
+  display: flex; flex-direction: column; overflow-y: auto;
+  border-right: 1px solid var(--color-divider);
+}
+#sidebar.show { transform: translateX(0); box-shadow: var(--shadow-large); }
+.sb-brand { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2) var(--space-4); }
+.sb-brand img { width: 34px; height: 34px; border-radius: 10px; }
+.sb-brand b { font-family: var(--font-display); font-size: var(--text-large); letter-spacing: var(--tracking-tight); }
+.sb-item {
+  display: flex; align-items: center; gap: var(--space-3);
+  width: 100%; text-align: left; border: 0; background: transparent; cursor: pointer;
+  color: var(--color-foreground); font-size: var(--text-small); font-weight: var(--fw-medium);
+  padding: 11px var(--space-3); border-radius: var(--radius-small); min-height: 44px;
+}
+.sb-item:active, .sb-item.active { background: var(--color-default-flat); }
+.sb-item.active { color: var(--color-primary); }
+.sb-item .iconify { font-size: 19px; flex: 0 0 auto; }
+.sb-item .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-item .edit { color: var(--text-subtle); font-size: 15px; padding: 6px; }
+.sb-kids { margin-left: var(--space-5); border-left: 1px solid var(--color-divider); padding-left: var(--space-1); }
+.sb-sep { height: 1px; background: var(--color-divider); margin: var(--space-3) var(--space-2); flex: 0 0 auto; }
+
+/* ---------- Sheets & modals ---------- */
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
+  background: var(--surface-card); border-radius: var(--radius-bubble) var(--radius-bubble) 0 0;
+  border: 1px solid var(--color-divider); border-bottom: 0;
+  padding: var(--space-2) var(--space-4) calc(var(--sab) + var(--space-4));
+  max-height: 76vh; overflow-y: auto;
+  transform: translateY(105%); transition: transform var(--dur-slow) var(--ease-out);
+  max-width: 720px; margin: 0 auto; box-shadow: var(--shadow-large);
+}
+.sheet.show { transform: translateY(0); }
+.sheet-grab { width: 40px; height: 4px; border-radius: var(--radius-full); background: var(--color-default-300); margin: 4px auto var(--space-3); }
+.sheet h3, .modal h3 {
+  font-family: var(--font-display); font-size: var(--text-large);
+  font-weight: var(--fw-semibold); margin: 0 0 var(--space-3); letter-spacing: var(--tracking-tight);
+}
+.modal {
+  position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity var(--dur-base) var(--ease-out);
+}
+.modal.show { opacity: 1; pointer-events: auto; }
+.modal .modal-card {
+  background: var(--surface-card); border: 1px solid var(--color-divider);
+  border-radius: var(--radius-bubble) var(--radius-bubble) 0 0; width: 100%; max-width: 720px;
+  max-height: 86vh; overflow-y: auto;
+  padding: var(--space-4) var(--space-4) calc(var(--sab) + var(--space-4));
+  transform: translateY(24px); transition: transform var(--dur-base) var(--ease-out);
+}
+.modal.show .modal-card { transform: translateY(0); }
+@media (min-width: 640px) {
+  .modal { align-items: center; padding: var(--space-6); }
+  .modal .modal-card { border-radius: var(--radius-large); }
+}
+.field { margin-bottom: var(--space-3); }
+.field label { display: block; font-size: var(--text-tiny); font-weight: var(--fw-semibold); color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+.field input[type=text], .field input[type=password], .field select {
+  width: 100%; font-size: 16px; font-family: var(--font-sans);
+  background: var(--color-background); color: var(--color-foreground);
+  border: 1px solid var(--color-border); border-radius: var(--radius-small);
+  padding: 11px 14px; outline: none;
+}
+.field input:focus, .field select:focus { border-color: var(--color-primary-400); }
+.btn {
+  appearance: none; border: 0; cursor: pointer;
+  border-radius: var(--radius-bubble); padding: 12px 20px; min-height: 44px;
+  font-size: var(--text-small); font-weight: var(--fw-semibold); font-family: var(--font-sans);
+  background: var(--color-default); color: var(--color-default-foreground);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: var(--color-primary); color: var(--color-primary-foreground); }
+.btn.danger { background: var(--color-danger-flat); color: var(--color-danger-600); }
+.btn.ghost { background: transparent; border: 1px solid var(--color-border); }
+.btn.block { width: 100%; margin-bottom: var(--space-2); }
+.btn-row { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
+.btn-row .btn { flex: 1; }
+.switch-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; min-height: 44px; }
+.switch-row .grow { flex: 1; font-size: var(--text-small); }
+.switch-row .sub { display: block; color: var(--text-subtle); font-size: var(--text-tiny); margin-top: 2px; }
+.sw { position: relative; width: 46px; height: 27px; flex: 0 0 auto; }
+.sw input { opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; position: absolute; z-index: 1; }
+.sw i {
+  position: absolute; inset: 0; background: var(--color-default-300);
+  border-radius: var(--radius-full); transition: background var(--dur-fast) var(--ease-out); pointer-events: none;
+}
+.sw i::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 21px; height: 21px;
+  background: #fff; border-radius: var(--radius-full); transition: transform var(--dur-fast) var(--ease-out);
+}
+.sw input:checked + i { background: var(--color-primary); }
+.sw input:checked + i::after { transform: translateX(19px); }
+
+/* list rows inside sheets/modals */
+.m-row {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: 11px var(--space-2); border-radius: var(--radius-small);
+  min-height: 48px; cursor: pointer; font-size: var(--text-small);
+}
+.m-row:active { background: var(--color-default-flat); }
+.m-row .grow { flex: 1; min-width: 0; }
+.m-row .sub { display: block; color: var(--text-subtle); font-size: var(--text-tiny); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-row .iconify { font-size: 19px; color: var(--text-muted); flex: 0 0 auto; }
+.m-row .iconify.lead { color: var(--color-primary); }
+.m-row .mini {
+  appearance: none; border: 0; background: transparent; color: var(--text-muted);
+  width: 40px; height: 40px; border-radius: var(--radius-full); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 17px; flex: 0 0 auto;
+}
+.m-row .mini:active { background: var(--color-default-flat); }
+.m-row .mini.danger { color: var(--color-danger-600); }
+.badge-ttl {
+  background: var(--color-secondary-flat); color: var(--color-secondary-600);
+  font-size: var(--text-tiny); font-weight: var(--fw-semibold);
+  border-radius: var(--radius-full); padding: 3px 10px; flex: 0 0 auto;
+}
+.inline-add { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
+.inline-add input {
+  flex: 1; min-width: 0; font-size: 16px; font-family: var(--font-sans);
+  background: var(--color-background); color: var(--color-foreground);
+  border: 1px solid var(--color-border); border-radius: var(--radius-small);
+  padding: 10px 13px; outline: none;
+}
+.inline-add input.narrow { flex: 0 0 76px; }
+.inline-add input:focus { border-color: var(--color-primary-400); }
+
+/* more-menu popover */
+#moreMenu {
+  position: fixed; z-index: 81; top: calc(var(--bar-h) + var(--sat) + 4px); right: var(--space-3);
+  background: var(--surface-raised); border: 1px solid var(--color-divider);
+  border-radius: var(--radius-medium); box-shadow: var(--shadow-large);
+  min-width: 220px; padding: var(--space-1);
+  opacity: 0; pointer-events: none; transform: scale(0.96); transform-origin: top right;
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+#moreMenu.show { opacity: 1; pointer-events: auto; transform: scale(1); }
+#moreMenu .m-row { min-height: 44px; }
+
+/* toast */
+#toast {
+  position: fixed; left: 50%; bottom: calc(var(--dock-h) + var(--sab) + var(--kb) + var(--space-3));
+  transform: translate(-50%, 16px); z-index: 90;
+  background: var(--surface-raised); color: var(--color-foreground);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-bubble);
+  padding: 10px 20px; font-size: var(--text-small); box-shadow: var(--shadow-medium);
+  opacity: 0; pointer-events: none; white-space: nowrap; max-width: 86vw; overflow: hidden; text-overflow: ellipsis;
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.spin { display: inline-block; animation: rot 0.9s linear infinite; }
+@keyframes rot { to { transform: rotate(360deg); } }
+
+@media (hover: hover) {
+  .row:hover { background: var(--surface-raised); }
+  .ibtn:hover, .m-row:hover, .sb-item:hover { background: var(--color-default-flat); }
+  .btn:hover { opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<!-- ===== App bar ===== -->
+<header id="appbar">
+  <button id="btnMenu" class="ibtn" aria-label="Menu"><span class="iconify" data-icon="solar:hamburger-menu-linear"></span></button>
+  <button id="btnBack" class="ibtn hidden" aria-label="Back"><span class="iconify" data-icon="solar:alt-arrow-left-linear"></span></button>
+  <div id="barTitle">Rapid Notes</div>
+  <button id="btnSearch" class="ibtn" aria-label="Search"><span class="iconify" data-icon="solar:magnifer-linear"></span></button>
+  <button id="btnMore" class="ibtn" aria-label="More"><span class="iconify" data-icon="solar:menu-dots-bold"></span></button>
+</header>
+
+<div id="searchBar" class="hidden">
+  <input id="searchInput" type="search" placeholder="Search notes" autocomplete="off">
+  <button id="btnSearchClose" class="ibtn" aria-label="Close search"><span class="iconify" data-icon="solar:close-circle-linear"></span></button>
+</div>
+
+<!-- ===== Select-mode toolbar ===== -->
+<div id="selectBar" class="hidden">
+  <button id="selClose" class="ibtn" aria-label="Cancel selection"><span class="iconify" data-icon="solar:close-circle-linear"></span></button>
+  <span id="selCount">0 selected</span>
+  <button id="selPin" class="ibtn" aria-label="Pin"><span class="iconify" data-icon="solar:pin-linear"></span></button>
+  <button id="selMove" class="ibtn" aria-label="Move"><span class="iconify" data-icon="solar:folder-with-files-linear"></span></button>
+  <button id="selDelete" class="ibtn danger" aria-label="Delete"><span class="iconify" data-icon="solar:trash-bin-trash-linear"></span></button>
+</div>
+
+<main id="main">
+  <!-- ===== Home dashboard ===== -->
+  <section id="homeView">
+    <div id="greetHi"></div>
+    <div id="greetDate"></div>
+    <div id="aiBanner" class="hidden">
+      <span class="iconify" data-icon="solar:danger-triangle-linear"></span>
+      <span class="msg"></span>
+      <button class="ibtn" id="aiBannerClose" style="width:34px;height:34px;font-size:16px"><span class="iconify" data-icon="solar:close-circle-linear"></span></button>
+    </div>
+    <div class="h-label"><span class="iconify" data-icon="solar:folder-linear"></span>Folders</div>
+    <div id="folderChips" class="chip-strip"></div>
+    <div id="aiCard" class="hidden">
+      <div class="ai-head">
+        <span class="iconify" data-icon="solar:magic-stick-3-linear"></span>
+        <b>AI overview</b>
+        <select id="aiScopeSel" class="ai-scope" aria-label="Summary scope"></select>
+        <button id="aiRefresh" class="ibtn" style="width:34px;height:34px;font-size:16px" aria-label="Refresh summary"><span class="iconify" data-icon="solar:refresh-linear"></span></button>
+      </div>
+      <div id="aiOverview"></div>
+      <div id="aiAttention"></div>
+    </div>
+    <div id="pinnedWrap" class="hidden">
+      <div class="h-label"><span class="iconify" data-icon="solar:pin-linear"></span>Pinned</div>
+      <div id="pinnedList"></div>
+    </div>
+    <div class="h-label"><span class="iconify" data-icon="solar:history-linear"></span>Recent</div>
+    <div id="recentList"></div>
+  </section>
+
+  <!-- ===== Folder / search list ===== -->
+  <section id="listView" class="hidden">
+    <div id="listSections"></div>
+  </section>
+</main>
+
+<!-- ===== Rapid capture dock ===== -->
+<div id="dock">
+  <input id="logInput" type="text" placeholder="Log a thought…" autocomplete="off" enterkeyhint="send">
+  <button id="dockMic" class="dock-btn" aria-label="Voice note"><span class="iconify" data-icon="solar:microphone-2-linear"></span></button>
+  <button id="dockCam" class="dock-btn" aria-label="Photo note"><span class="iconify" data-icon="solar:camera-linear"></span></button>
+  <button id="dockNew" class="dock-btn primary" aria-label="New note"><span class="iconify" data-icon="solar:pen-new-square-linear"></span></button>
+</div>
+
+<!-- ===== Editor ===== -->
+<section id="editorView" class="hidden">
+  <div id="edBar">
+    <button id="edBack" class="ibtn" aria-label="Back"><span class="iconify" data-icon="solar:alt-arrow-left-linear"></span></button>
+    <div class="spacer"></div>
+    <button id="edPin" class="ibtn" aria-label="Pin note"><span class="iconify" data-icon="solar:pin-linear"></span></button>
+    <button id="edAI" class="ibtn accent" aria-label="Extract action items"><span class="iconify" data-icon="solar:magic-stick-3-linear"></span></button>
+    <button id="edDelete" class="ibtn danger" aria-label="Delete note"><span class="iconify" data-icon="solar:trash-bin-trash-linear"></span></button>
+  </div>
+  <input id="edTitle" type="text" placeholder="Title" autocomplete="off">
+  <div id="edTags"></div>
+  <div id="edMeta"></div>
+  <div id="edMedia"></div>
+  <div id="edBody" contenteditable="true" data-ph="Start writing… shorthand expands as you type"></div>
+  <div id="edToolbar">
+    <button class="ibtn" data-cmd="bold" aria-label="Bold"><span class="iconify" data-icon="solar:text-bold-linear"></span></button>
+    <button class="ibtn" data-cmd="italic" aria-label="Italic"><span class="iconify" data-icon="solar:text-italic-linear"></span></button>
+    <button class="ibtn" data-cmd="underline" aria-label="Underline"><span class="iconify" data-icon="solar:text-underline-linear"></span></button>
+    <button class="ibtn" data-cmd="strikeThrough" aria-label="Strikethrough"><span class="iconify" data-icon="solar:text-cross-linear"></span></button>
+    <span class="sep"></span>
+    <button class="ibtn" id="tbCheck" aria-label="Checklist"><span class="iconify" data-icon="solar:checklist-minimalistic-linear"></span></button>
+    <span class="sep"></span>
+    <button class="ibtn" id="tbPhoto" aria-label="Attach photo"><span class="iconify" data-icon="solar:camera-linear"></span></button>
+    <button class="ibtn" id="tbMic" aria-label="Record audio"><span class="iconify" data-icon="solar:microphone-2-linear"></span></button>
+  </div>
+</section>
+
+<!-- ===== Sidebar drawer ===== -->
+<div id="scrim"></div>
+<aside id="sidebar">
+  <div class="sb-brand"><img src="icons/icon-192.png" alt=""><b>Rapid Notes</b></div>
+  <button class="sb-item" data-nav="home"><span class="iconify" data-icon="solar:home-2-linear"></span><span class="grow">Home</span></button>
+  <div class="sb-sep"></div>
+  <div id="sbFolders"></div>
+  <button class="sb-item" id="sbNewFolder"><span class="iconify" data-icon="solar:add-folder-linear"></span><span class="grow">New folder</span></button>
+  <div class="sb-sep"></div>
+  <button class="sb-item" data-nav="dict"><span class="iconify" data-icon="solar:book-2-linear"></span><span class="grow">Shorthand dictionary</span></button>
+  <button class="sb-item" data-nav="tags"><span class="iconify" data-icon="solar:hashtag-linear"></span><span class="grow">Tags</span></button>
+  <button class="sb-item" data-nav="bin"><span class="iconify" data-icon="solar:trash-bin-trash-linear"></span><span class="grow">Recycle bin</span><span id="binBadge" class="badge-count hidden"></span></button>
+  <button class="sb-item" data-nav="settings"><span class="iconify" data-icon="solar:settings-linear"></span><span class="grow">Settings</span></button>
+</aside>
+
+<!-- ===== More menu ===== -->
+<div id="moreMenu">
+  <div class="m-row" data-act="export"><span class="iconify" data-icon="solar:export-linear"></span><span class="grow">Export folder</span></div>
+  <div class="m-row" data-act="tags"><span class="iconify" data-icon="solar:hashtag-linear"></span><span class="grow">Manage tags</span></div>
+  <div class="m-row" data-act="dict"><span class="iconify" data-icon="solar:book-2-linear"></span><span class="grow">Dictionary</span></div>
+  <div class="m-row" data-act="bin"><span class="iconify" data-icon="solar:trash-bin-trash-linear"></span><span class="grow">Recycle bin</span></div>
+  <div class="m-row" data-act="settings"><span class="iconify" data-icon="solar:settings-linear"></span><span class="grow">Settings</span></div>
+</div>
+
+<!-- ===== Recategorize / move sheet ===== -->
+<div id="sheetRecat" class="sheet">
+  <div class="sheet-grab"></div>
+  <h3 id="recatTitle">Move note</h3>
+  <div id="recatFolders"></div>
+  <div id="recatTagsWrap">
+    <div class="h-label" style="margin-top:var(--space-4)"><span class="iconify" data-icon="solar:hashtag-linear"></span>Tags</div>
+    <div id="recatTags" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+  </div>
+</div>
+
+<!-- ===== Manage tags sheet ===== -->
+<div id="sheetTags" class="sheet">
+  <div class="sheet-grab"></div>
+  <h3>Tags</h3>
+  <div id="tagList"></div>
+  <div class="inline-add">
+    <input id="tagName" type="text" placeholder="Tag name" autocomplete="off">
+    <input id="tagPrefix" class="narrow" type="text" placeholder="Prefix" autocomplete="off">
+    <button id="btnAddTag" class="btn primary">Add</button>
+  </div>
+  <p style="color:var(--text-subtle);font-size:var(--text-tiny);margin:var(--space-2) 0 0">Start a quick log with a prefix (like <b>!</b> or <b>?</b>) to tag it automatically.</p>
+</div>
+
+<!-- ===== Folder modal ===== -->
+<div id="modalFolder" class="modal"><div class="modal-card">
+  <h3 id="folderModalTitle">New folder</h3>
+  <div class="field"><label>Name</label><input id="folderName" type="text" autocomplete="off"></div>
+  <div class="field"><label>Inside</label><select id="folderParent"></select></div>
+  <div class="switch-row">
+    <span class="grow">Shorthand expansion<span class="sub">Expand dictionary shorthand for notes in this folder</span></span>
+    <span class="sw"><input id="folderShorthand" type="checkbox" checked><i></i></span>
+  </div>
+  <div class="btn-row">
+    <button id="folderDelete" class="btn danger hidden">Delete</button>
+    <button id="folderSave" class="btn primary">Save</button>
+  </div>
+</div></div>
+
+<!-- ===== Dictionary modal ===== -->
+<div id="modalDict" class="modal"><div class="modal-card">
+  <h3>Shorthand dictionary</h3>
+  <p style="color:var(--text-muted);font-size:var(--text-small);margin:0 0 var(--space-3)">Shorthand expands while you type. Values can use <b>{date}</b>, <b>{time}</b>, <b>{day}</b>, <b>{datetime}</b>.</p>
+  <div id="dictList"></div>
+  <div class="inline-add">
+    <input id="dictKey" class="narrow" type="text" placeholder="mtg" autocomplete="off" style="flex-basis:96px">
+    <input id="dictVal" type="text" placeholder="meeting" autocomplete="off">
+    <button id="btnAddDict" class="btn primary">Add</button>
+  </div>
+</div></div>
+
+<!-- ===== Dictionary folder-access modal ===== -->
+<div id="modalDictAccess" class="modal"><div class="modal-card">
+  <h3>Folder access</h3>
+  <p id="dictAccessSub" style="color:var(--text-muted);font-size:var(--text-small);margin:0 0 var(--space-2)"></p>
+  <div class="switch-row">
+    <span class="grow">All folders<span class="sub">Available everywhere, including Home</span></span>
+    <span class="sw"><input id="dictAccessAll" type="checkbox"><i></i></span>
+  </div>
+  <div id="dictAccessList"></div>
+  <div class="btn-row"><button id="dictAccessDone" class="btn primary">Done</button></div>
+</div></div>
+
+<!-- ===== Recycle bin modal ===== -->
+<div id="modalBin" class="modal"><div class="modal-card">
+  <h3>Recycle bin</h3>
+  <p style="color:var(--text-muted);font-size:var(--text-small);margin:0 0 var(--space-3)">Notes are removed forever after 15 days.</p>
+  <div id="binList"></div>
+  <div class="btn-row"><button id="btnEmptyBin" class="btn danger">Empty bin</button></div>
+</div></div>
+
+<!-- ===== Settings modal ===== -->
+<div id="modalSettings" class="modal"><div class="modal-card">
+  <h3>Settings</h3>
+  <div class="field">
+    <label>DeepSeek API key</label>
+    <input id="aiKeyInput" type="password" placeholder="sk-…" autocomplete="off">
+  </div>
+  <p style="color:var(--text-subtle);font-size:var(--text-tiny);margin:0 0 var(--space-3)">Optional. Enables action-item extraction and folder summaries. Your key stays on this device.</p>
+  <div class="btn-row">
+    <button id="btnClearKey" class="btn ghost">Clear</button>
+    <button id="btnSaveKey" class="btn primary">Save key</button>
+  </div>
+  <button id="aiTestBtn" class="btn ghost block" style="margin-top:var(--space-2)">Test connection</button>
+  <p id="aiTestResult" style="color:var(--text-muted);font-size:var(--text-tiny);min-height:16px;margin:var(--space-1) 0 0"></p>
+  <div class="sb-sep" style="margin:var(--space-4) 0"></div>
+  <button id="btnExportAll" class="btn ghost block"><span class="iconify" data-icon="solar:export-linear"></span>Export all notes (TXT)</button>
+  <p style="color:var(--text-subtle);font-size:var(--text-tiny);margin-top:var(--space-3)">Rapid Notes v1 · Everything is stored on this device.</p>
+</div></div>
+
+<!-- ===== Export modal ===== -->
+<div id="modalExport" class="modal"><div class="modal-card">
+  <h3 id="exportTitle">Export folder</h3>
+  <button id="btnExpTxt" class="btn ghost block"><span class="iconify" data-icon="solar:document-text-linear"></span>Plain text (.txt)</button>
+  <button id="btnExpPdf" class="btn ghost block"><span class="iconify" data-icon="solar:printer-linear"></span>PDF (print)</button>
+</div></div>
+
+<!-- ===== Recording overlay ===== -->
+<div id="recOverlay" class="hidden">
+  <div id="recDot"></div>
+  <div id="recTime">00:00</div>
+  <button id="recStop" class="btn" style="background:#fff;color:#000">Stop recording</button>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+
+<script>
+/* ================================================================
+   Rapid Notes — application logic
+   Single-file, no-build. localStorage for structured data,
+   IndexedDB for media blobs. Optional DeepSeek AI (BYO key).
+   ================================================================ */
+'use strict';
+
+/* ---------------- Constants & state ---------------- */
+const LS = {
+  entries: 'rapid_entries_v1',
+  folders: 'rapid_folders_v1',
+  cats: 'rapid_cats_v1',
+  dict: 'rapid_dict_v1',
+  pins: 'rapid_pins_v1',
+  recentNotes: 'rapid_recent_notes_v1',
+  recentFolders: 'rapid_recent_folders_v1',
+  aiKey: 'rapid_ai_key_v1',
+  aiCache: 'rapid_ai_cache_v1',
+  seeded: 'rapid_seeded_v1'
+};
+const BIN_TTL = 15 * 24 * 60 * 60 * 1000; // 15 days
+const $ = (id) => document.getElementById(id);
+
+function lsGet(key, fallback) {
+  try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); }
+  catch (e) { return fallback; }
+}
+function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+let entries = lsGet(LS.entries, []);
+let folders = lsGet(LS.folders, []);
+let cats = lsGet(LS.cats, []);
+let dict = lsGet(LS.dict, []);
+let pins = lsGet(LS.pins, []);
+let recentNotes = lsGet(LS.recentNotes, []);
+let recentFolders = lsGet(LS.recentFolders, []);
+
+let currentFolder = null;   // null = Home
+let editingId = null;
+let selectMode = false;
+const selected = new Set();
+let searchQuery = '';
+let recatTarget = null;     // entry id for single recategorize; null = bulk move
+let catFilter = null;       // category id the rapid list is filtered to (null = all)
+
+const saveEntries = () => lsSet(LS.entries, entries);
+const saveFolders = () => lsSet(LS.folders, folders);
+const saveCats = () => lsSet(LS.cats, cats);
+const saveDict = () => lsSet(LS.dict, dict);
+const savePins = () => lsSet(LS.pins, pins);
+const saveRecents = () => { lsSet(LS.recentNotes, recentNotes); lsSet(LS.recentFolders, recentFolders); };
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* URLs in previews become clickable links (input must already be escaped) */
+const linkify = (escaped) => escaped.replace(/(https?:\/\/[^\s<>"']+)/gi,
+  '<a href="$1" target="_blank" rel="noopener" onclick="event.stopPropagation()">$1</a>');
+
+/* First-run seed: default tags + a few shorthand examples */
+if (!lsGet(LS.seeded, false)) {
+  cats = [
+    { id: uid(), name: 'To Do', prefix: '!' },
+    { id: uid(), name: 'Question', prefix: '?' },
+    { id: uid(), name: 'Idea', prefix: '*' }
+  ];
+  dict = [
+    { k: 'mtg', v: 'meeting', folders: null },
+    { k: 'tmrw', v: 'tomorrow', folders: null },
+    { k: 'asap', v: 'as soon as possible', folders: null },
+    { k: 'dt', v: '{date}', folders: null }
+  ];
+  saveCats(); saveDict(); lsSet(LS.seeded, true);
+}
+
+/* ---------------- IndexedDB media store ---------------- */
+let mediaDB = null;
+function openMediaDB() {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('rapid_media_v1', 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('images')) db.createObjectStore('images');
+      if (!db.objectStoreNames.contains('audio')) db.createObjectStore('audio');
+    };
+    req.onsuccess = () => { mediaDB = req.result; resolve(mediaDB); };
+    req.onerror = () => resolve(null); // media features degrade gracefully
+  });
+}
+function idbOp(store, mode, fn) {
+  return new Promise((resolve, reject) => {
+    if (!mediaDB) return reject(new Error('media store unavailable'));
+    const tx = mediaDB.transaction(store, mode);
+    const rq = fn(tx.objectStore(store));
+    rq.onsuccess = () => resolve(rq.result);
+    rq.onerror = () => reject(rq.error);
+  });
+}
+const idbPut = (store, key, blob) => idbOp(store, 'readwrite', (s) => s.put(blob, key));
+const idbGet = (store, key) => idbOp(store, 'readonly', (s) => s.get(key));
+const idbDel = (store, key) => idbOp(store, 'readwrite', (s) => s.delete(key)).catch(() => {});
+
+async function deleteEntryMedia(entry) {
+  if (entry.imageId) await idbDel('images', entry.imageId);
+  if (entry.audioId) await idbDel('audio', entry.audioId);
+}
+
+/* ---------------- Helpers ---------------- */
+const folderById = (id) => folders.find((f) => f.id === id) || null;
+const catById = (id) => cats.find((c) => c.id === id) || null;
+const entryById = (id) => entries.find((e) => e.id === id) || null;
+const liveEntries = () => entries.filter((e) => !e.deletedAt);
+const binEntries = () => entries.filter((e) => e.deletedAt);
+
+function childFolders(parentId) {
+  return folders.filter((f) => (f.parentId || null) === (parentId || null))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+function descendantIds(folderId) {
+  const out = [];
+  const walk = (id) => childFolders(id).forEach((f) => { out.push(f.id); walk(f.id); });
+  walk(folderId);
+  return out;
+}
+function folderName(id) { const f = folderById(id); return f ? f.name : 'Home'; }
+function folderPath(id) {
+  const parts = []; let f = folderById(id);
+  while (f) { parts.unshift(f.name); f = folderById(f.parentId); }
+  return parts.length ? parts.join(' / ') : 'Home';
+}
+
+function stripHTML(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html || '';
+  return (d.innerText || d.textContent || '').trim();
+}
+function entryText(e) { return e.richHTML ? stripHTML(e.content) : (e.content || ''); }
+function entryTitle(e) {
+  if (e.title) return e.title;
+  const t = entryText(e).split('\n').find((l) => l.trim());
+  if (t) return t.trim().slice(0, 80);
+  if (e.imageId) return 'Photo note';
+  if (e.audioId) return 'Voice note';
+  return 'Untitled';
+}
+function fmtTime(ts) {
+  const d = new Date(ts), now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  if (d.getFullYear() === now.getFullYear()) return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ---------------- Shorthand engine ---------------- */
+function shorthandOn(folderId) {
+  if (folderId == null) return true; // Home always expands
+  const f = folderById(folderId);
+  return f ? f.shorthandEnabled !== false : true;
+}
+/* A dict entry scoped to a folder also applies to that folder's descendants */
+function dictInScope(d, folderId) {
+  if (!d.folders || !d.folders.length) return true;
+  let f = folderById(folderId);
+  while (f) {
+    if (d.folders.includes(f.id)) return true;
+    f = folderById(f.parentId);
+  }
+  return false;
+}
+function liveTokens(v) {
+  const n = new Date();
+  return String(v)
+    .split('{date}').join(n.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }))
+    .split('{time}').join(n.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }))
+    .split('{day}').join(n.toLocaleDateString(undefined, { weekday: 'long' }))
+    .split('{datetime}').join(n.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' + n.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }));
+}
+function dictMapFor(folderId) {
+  const map = {};
+  dict.forEach((d) => { if (dictInScope(d, folderId)) map[d.k.toLowerCase()] = d.v; });
+  return map;
+}
+function expandShorthand(text, folderId) {
+  if (!shorthandOn(folderId)) return text;
+  const map = dictMapFor(folderId);
+  if (!Object.keys(map).length) return text;
+  return text.replace(/\S+/g, (w) => {
+    const m = w.match(/^([\w'-]+)([.,!?;:)]*)$/);
+    if (!m) return w;
+    const rep = map[m[1].toLowerCase()];
+    return rep != null ? liveTokens(rep) + m[2] : w;
+  });
+}
+/* Category prefixes stripped from the front, repeatedly (e.g. "!? call mom") */
+function classifyText(raw) {
+  let text = raw.trim();
+  const catIds = [];
+  const prefixed = cats.filter((c) => c.prefix).sort((a, b) => b.prefix.length - a.prefix.length);
+  let matched = true;
+  while (matched) {
+    matched = false;
+    for (const c of prefixed) {
+      if (text.startsWith(c.prefix)) {
+        text = text.slice(c.prefix.length).trim();
+        if (!catIds.includes(c.id)) catIds.push(c.id);
+        matched = true;
+        break;
+      }
+    }
+  }
+  return { text, catIds };
+}
+function addQuickEntry(raw, opts) {
+  const { text, catIds } = classifyText(raw);
+  const e = Object.assign({
+    id: uid(), folderId: currentFolder, catIds, ts: Date.now(),
+    title: '', content: expandShorthand(text, currentFolder), richHTML: false
+  }, opts || {});
+  entries.unshift(e);
+  saveEntries();
+  return e;
+}
+/* ---------------- History / back-gesture handling ----------------
+   Every overlay or navigation pushes a history entry with a close
+   function, so the Android back gesture peels UI layers instead of
+   leaving the app. UI close buttons call navBack() (history.back),
+   and the popstate handler performs the actual close. */
+const navStack = [];
+let suppressPop = 0;
+function pushNav(closeFn) {
+  navStack.push(closeFn);
+  history.pushState({ rn: navStack.length }, '');
+}
+function navBack() {
+  if (navStack.length) history.back();
+}
+window.addEventListener('popstate', () => {
+  if (suppressPop > 0) { suppressPop--; return; }
+  const fn = navStack.pop();
+  if (fn) fn();
+});
+/* Close an overlay programmatically without a back press (e.g. when an
+   action inside it navigates elsewhere): drop its stack frame too. */
+function unwindNav(n) {
+  for (let i = 0; i < n; i++) {
+    const fn = navStack.pop();
+    if (fn) fn();
+    suppressPop++;
+    history.back();
+  }
+}
+
+/* ---------------- Views & rendering ---------------- */
+function isHome() { return currentFolder == null && !searchQuery; }
+
+function render() {
+  renderBar();
+  renderSidebar();
+  if (searchQuery) { renderSearch(); }
+  else if (currentFolder == null) { renderHome(); }
+  else { renderList(); }
+}
+
+function renderBar() {
+  $('barTitle').textContent = searchQuery ? 'Search' : (currentFolder == null ? 'Rapid Notes' : folderName(currentFolder));
+  $('btnMenu').classList.toggle('hidden', currentFolder != null);
+  $('btnBack').classList.toggle('hidden', currentFolder == null);
+  $('homeView').classList.toggle('hidden', !isHome());
+  $('listView').classList.toggle('hidden', isHome());
+}
+
+/* ----- entry rows (shared by home + list) ----- */
+/* Up to 3 checklist lines from the note body, rendered ☑/☐ in the card */
+function checklistPreview(e) {
+  if (!e.richHTML || !e.content || e.content.indexOf('class="ck"') === -1) return '';
+  const d = document.createElement('div');
+  d.innerHTML = e.content;
+  const lines = Array.from(d.querySelectorAll('.ck'));
+  if (!lines.length) return '';
+  let html = '<div class="row-ck">';
+  lines.slice(0, 3).forEach((l) => {
+    const cb = l.querySelector('input[type=checkbox]');
+    const done = !!(cb && cb.checked);
+    const t = (l.querySelector('span') || l).textContent.trim();
+    html += '<div class="row-ck-item' + (done ? ' done' : '') + '"><span>' + (done ? '☑' : '☐') + '</span>' + esc(t) + '</div>';
+  });
+  if (lines.length > 3) html += '<div class="row-ck-item">… ' + (lines.length - 3) + ' more</div>';
+  return html + '</div>';
+}
+async function hydrateRowMedia(box, e) {
+  if (!box) return;
+  try {
+    if (e.imageId) {
+      const blob = await idbGet('images', e.imageId);
+      if (blob) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(blob);
+        img.alt = '';
+        box.appendChild(img);
+      }
+    }
+    if (e.audioId) {
+      const blob = await idbGet('audio', e.audioId);
+      if (blob) {
+        const au = document.createElement('audio');
+        au.controls = true;
+        au.src = URL.createObjectURL(blob);
+        au.addEventListener('click', (ev) => ev.stopPropagation());
+        box.appendChild(au);
+      }
+    }
+  } catch (err) { /* media store unavailable */ }
+}
+function buildRow(e, showFolder) {
+  const wrap = document.createElement('div');
+  wrap.className = 'row-wrap';
+  wrap.innerHTML =
+    '<div class="under under-l"><span class="iconify" data-icon="solar:folder-with-files-linear"></span></div>' +
+    '<div class="under under-r"><span class="iconify" data-icon="solar:trash-bin-trash-linear"></span></div>';
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.dataset.id = e.id;
+  if (selected.has(e.id)) row.classList.add('selected');
+
+  const snippet = entryText(e).replace(/\s+/g, ' ').slice(0, 140);
+  const ckHtml = checklistPreview(e);
+  const tagHtml = (e.catIds || []).map((cid) => {
+    const c = catById(cid);
+    return c ? '<span class="tag-pill">' + esc(c.name) + '</span>' : '';
+  }).join('');
+  const pinHtml = pins.includes(e.id) ? '<span class="iconify pin-ico" data-icon="solar:pin-bold"></span>' : '';
+  const folderHtml = showFolder ? '<span>' + esc(folderName(e.folderId)) + '</span>' : '';
+  const hasMedia = !!(e.imageId || e.audioId);
+
+  row.innerHTML =
+    '<div class="row-main">' +
+      '<div class="row-title">' + linkify(esc(entryTitle(e))) + '</div>' +
+      (ckHtml || (snippet && snippet !== entryTitle(e) ? '<div class="row-snippet">' + linkify(esc(snippet)) + '</div>' : '')) +
+      (hasMedia ? '<div class="row-media"></div>' : '') +
+      '<div class="row-meta">' + pinHtml + '<span>' + fmtTime(e.ts) + '</span>' + folderHtml + tagHtml + '</div>' +
+    '</div>' +
+    '<div class="row-check' + (selectMode ? '' : ' hidden') + '">✓</div>';
+  if (hasMedia) hydrateRowMedia(row.querySelector('.row-media'), e);
+
+  row.addEventListener('click', () => {
+    if (selectMode) toggleSel(e.id);
+    else openEditor(e.id);
+  });
+  bindRowGestures(wrap, row, e.id);
+  bindRowDrag(row, e.id);
+  wrap.appendChild(row);
+  return wrap;
+}
+
+/* ----- Home dashboard ----- */
+function renderHome() {
+  const h = new Date().getHours();
+  $('greetHi').textContent = h < 5 ? 'Up late?' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  $('greetDate').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+
+  // folder chips: recent first, then remaining top-level
+  const chips = $('folderChips');
+  chips.innerHTML = '';
+  const seen = new Set();
+  const chipFolders = [];
+  recentFolders.forEach((id) => { const f = folderById(id); if (f && !seen.has(f.id)) { chipFolders.push(f); seen.add(f.id); } });
+  childFolders(null).forEach((f) => { if (!seen.has(f.id)) { chipFolders.push(f); seen.add(f.id); } });
+  chipFolders.forEach((f) => {
+    const b = document.createElement('button');
+    b.className = 'f-chip';
+    b.innerHTML = '<span class="iconify" data-icon="solar:folder-bold"></span>' + esc(f.name);
+    b.addEventListener('click', () => openFolder(f.id));
+    chips.appendChild(b);
+  });
+  const add = document.createElement('button');
+  add.className = 'f-chip add';
+  add.innerHTML = '<span class="iconify" data-icon="solar:add-circle-linear"></span>New';
+  add.addEventListener('click', () => openFolderModal(null));
+  chips.appendChild(add);
+
+  // pinned
+  const pinned = pins.map(entryById).filter((e) => e && !e.deletedAt);
+  $('pinnedWrap').classList.toggle('hidden', !pinned.length);
+  const pl = $('pinnedList');
+  pl.innerHTML = '';
+  pinned.forEach((e) => pl.appendChild(buildRow(e, true)));
+
+  // recent
+  const rl = $('recentList');
+  rl.innerHTML = '';
+  const recents = liveEntries().slice().sort((a, b) => b.ts - a.ts).slice(0, 12);
+  if (!recents.length) {
+    rl.innerHTML = '<div class="empty-note">No notes yet. Log your first thought below.</div>';
+  } else {
+    recents.forEach((e) => rl.appendChild(buildRow(e, true)));
+  }
+
+  renderAICard();
+}
+
+/* ----- Folder list, grouped into category sections ----- */
+function renderList() {
+  const box = $('listSections');
+  box.innerHTML = '';
+  const items = liveEntries().filter((e) => (e.folderId || null) === currentFolder)
+    .sort((a, b) => b.ts - a.ts);
+
+  // sub-folder chips at top of a folder view
+  const kids = childFolders(currentFolder);
+  if (kids.length) {
+    const strip = document.createElement('div');
+    strip.className = 'chip-strip';
+    strip.style.marginBottom = 'var(--space-4)';
+    kids.forEach((f) => {
+      const b = document.createElement('button');
+      b.className = 'f-chip';
+      b.innerHTML = '<span class="iconify" data-icon="solar:folder-bold"></span>' + esc(f.name);
+      b.addEventListener('click', () => openFolder(f.id));
+      strip.appendChild(b);
+    });
+    box.appendChild(strip);
+  }
+
+  if (!items.length) {
+    const d = document.createElement('div');
+    d.className = 'empty-note';
+    d.textContent = 'No notes here yet. Create your first one.';
+    box.appendChild(d);
+    return;
+  }
+
+  // an entry appears under every category it carries; untagged go under "Notes"
+  const groups = new Map(); // catId|'' -> entries
+  cats.forEach((c) => {
+    const hits = items.filter((e) => (e.catIds || []).some((id) => id === c.id));
+    if (hits.length) groups.set(c.id, hits);
+  });
+  const untagged = items.filter((e) => !(e.catIds || []).some((id) => catById(id)));
+  if (untagged.length) groups.set('', untagged);
+  if (catFilter != null && !groups.has(catFilter)) catFilter = null;
+
+  groups.forEach((groupItems, key) => {
+    if (catFilter != null && key !== catFilter) return;
+    const sec = document.createElement('div');
+    sec.className = 'cat-section' + (catFilter === key ? ' filtered' : '');
+    sec.dataset.cat = key;
+    const label = document.createElement('div');
+    label.className = 'h-label filterable';
+    const c = key ? catById(key) : null;
+    label.innerHTML = '<span class="iconify" data-icon="' + (c ? 'solar:hashtag-linear' : 'solar:document-text-linear') + '"></span>' +
+      esc(c ? c.name : 'Notes') + ' · ' + groupItems.length +
+      (catFilter === key ? '<span style="margin-left:auto;font-size:11px">tap to show all</span>' : '');
+    // tap a section header to filter the list to just that category
+    label.addEventListener('click', () => {
+      catFilter = catFilter === key ? null : key;
+      render();
+      toast(catFilter != null ? 'Filtered: ' + (c ? c.name : 'Notes') : 'Showing all.');
+    });
+    sec.appendChild(label);
+    groupItems.forEach((e) => sec.appendChild(buildRow(e, false)));
+    bindSectionDrop(sec, key);
+    box.appendChild(sec);
+  });
+}
+
+/* ----- Search results ----- */
+function renderSearch() {
+  const box = $('listSections');
+  box.innerHTML = '';
+  const q = searchQuery.toLowerCase();
+  const hits = liveEntries().filter((e) =>
+    (e.title || '').toLowerCase().includes(q) || entryText(e).toLowerCase().includes(q)
+  ).sort((a, b) => b.ts - a.ts);
+  if (!hits.length) {
+    box.innerHTML = '<div class="empty-note">No matches for “' + esc(searchQuery) + '”.</div>';
+    return;
+  }
+  hits.forEach((e) => box.appendChild(buildRow(e, true)));
+}
+
+/* ----- Sidebar folder tree ----- */
+function renderSidebar() {
+  const badge = $('binBadge');
+  const binCount = binEntries().length;
+  badge.textContent = binCount > 9 ? '9+' : binCount;
+  badge.classList.toggle('hidden', !binCount);
+  const box = $('sbFolders');
+  box.innerHTML = '';
+  const build = (parentId, depth) => {
+    const wrap = document.createElement('div');
+    if (depth > 0) wrap.className = 'sb-kids';
+    childFolders(parentId).forEach((f) => {
+      const b = document.createElement('button');
+      b.className = 'sb-item' + (currentFolder === f.id ? ' active' : '');
+      b.innerHTML =
+        '<span class="iconify" data-icon="solar:folder-linear"></span>' +
+        '<span class="grow">' + esc(f.name) + '</span>' +
+        '<span class="edit iconify" data-icon="solar:pen-linear"></span>';
+      b.querySelector('.edit').addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        openFolderModal(f.id);
+      });
+      b.addEventListener('click', () => { closeSidebarThen(() => openFolder(f.id)); });
+      wrap.appendChild(b);
+      const sub = build(f.id, depth + 1);
+      if (sub.childNodes.length) wrap.appendChild(sub);
+    });
+    return wrap;
+  };
+  box.appendChild(build(null, 0));
+}
+
+/* ---------------- Navigation ---------------- */
+function openFolder(id) {
+  const prev = currentFolder;
+  currentFolder = id;
+  catFilter = null;
+  if (id != null) {
+    recentFolders = [id].concat(recentFolders.filter((x) => x !== id)).slice(0, 6);
+    saveRecents();
+  }
+  exitSelect();
+  render();
+  window.scrollTo(0, 0);
+  pushNav(() => { currentFolder = prev; exitSelect(); render(); });
+}
+$('btnBack').addEventListener('click', navBack);
+
+/* ---------------- Sidebar drawer ---------------- */
+let sidebarOpen = false;
+function openSidebar() {
+  if (sidebarOpen) return;
+  sidebarOpen = true;
+  renderSidebar();
+  $('sidebar').classList.add('show');
+  $('scrim').classList.add('show');
+  pushNav(() => { sidebarOpen = false; $('sidebar').classList.remove('show'); $('scrim').classList.remove('show'); });
+}
+function closeSidebarThen(fn) {
+  if (sidebarOpen) { unwindNav(1); }
+  if (fn) fn();
+}
+$('btnMenu').addEventListener('click', openSidebar);
+$('scrim').addEventListener('click', () => { if (sidebarOpen) navBack(); else closeTopModal(); });
+
+$('sidebar').addEventListener('click', (ev) => {
+  const item = ev.target.closest('[data-nav]');
+  if (!item) return;
+  const nav = item.dataset.nav;
+  closeSidebarThen(() => {
+    if (nav === 'home') { goHomeFully(); }
+    else if (nav === 'dict') openDictModal();
+    else if (nav === 'tags') openTagsSheet();
+    else if (nav === 'bin') openBinModal();
+    else if (nav === 'settings') openSettingsModal();
+  });
+});
+$('sbNewFolder').addEventListener('click', () => closeSidebarThen(() => openFolderModal(null)));
+
+function goHomeFully() {
+  // unwind any folder navigation frames
+  while (navStack.length) unwindNav(1);
+  currentFolder = null;
+  exitSelect();
+  render();
+}
+
+/* ---------------- Search ---------------- */
+$('btnSearch').addEventListener('click', () => {
+  const bar = $('searchBar');
+  if (!bar.classList.contains('hidden')) { $('searchInput').focus(); return; }
+  bar.classList.remove('hidden');
+  document.body.classList.add('searching');
+  $('searchInput').focus();
+  pushNav(() => {
+    bar.classList.add('hidden');
+    document.body.classList.remove('searching');
+    searchQuery = '';
+    $('searchInput').value = '';
+    render();
+  });
+});
+$('btnSearchClose').addEventListener('click', navBack);
+$('searchInput').addEventListener('input', () => {
+  searchQuery = $('searchInput').value.trim();
+  render();
+});
+
+/* ---------------- Select mode ---------------- */
+function enterSelect(id) {
+  selectMode = true;
+  selected.clear();
+  if (id) selected.add(id);
+  $('selectBar').classList.remove('hidden');
+  updateSelBar();
+  render();
+  if (navigator.vibrate) navigator.vibrate(15);
+}
+function exitSelect() {
+  if (!selectMode) return;
+  selectMode = false;
+  selected.clear();
+  $('selectBar').classList.add('hidden');
+}
+function toggleSel(id) {
+  if (selected.has(id)) selected.delete(id); else selected.add(id);
+  if (!selected.size) { exitSelect(); render(); return; }
+  updateSelBar();
+  render();
+}
+function updateSelBar() { $('selCount').textContent = selected.size + ' selected'; }
+
+$('selClose').addEventListener('click', () => { exitSelect(); render(); });
+$('selDelete').addEventListener('click', () => {
+  const n = selected.size;
+  if (!confirm('Move ' + n + ' note(s) to the recycle bin?')) return;
+  selected.forEach((id) => softDelete(id, true));
+  exitSelect();
+  saveEntries(); render();
+  toast(n + (n === 1 ? ' note moved to bin.' : ' notes moved to bin.'));
+});
+$('selPin').addEventListener('click', () => {
+  selected.forEach((id) => { if (!pins.includes(id)) pins.push(id); });
+  savePins();
+  exitSelect(); render();
+  toast('Pinned.');
+});
+$('selMove').addEventListener('click', () => { recatTarget = null; openRecatSheet(); });
+
+/* ---------------- Soft delete & recycle bin core ---------------- */
+function softDelete(id, skipSave) {
+  const e = entryById(id);
+  if (!e) return;
+  e.deletedAt = Date.now();
+  pins = pins.filter((p) => p !== id);
+  recentNotes = recentNotes.filter((r) => r !== id);
+  savePins(); saveRecents();
+  if (!skipSave) { saveEntries(); }
+}
+async function hardDelete(id) {
+  const e = entryById(id);
+  if (!e) return;
+  await deleteEntryMedia(e);
+  entries = entries.filter((x) => x.id !== id);
+  saveEntries();
+}
+async function autoPurgeBin() {
+  const cutoff = Date.now() - BIN_TTL;
+  const stale = binEntries().filter((e) => e.deletedAt < cutoff);
+  for (const e of stale) await hardDelete(e.id);
+}
+
+/* ---------------- Row gestures: swipe + long-press ---------------- */
+function bindRowGestures(wrap, row, id) {
+  let sx = 0, sy = 0, dx = 0, moved = false, horizontal = null, lpTimer = null;
+
+  row.addEventListener('touchstart', (ev) => {
+    if (selectMode) return;
+    const t = ev.touches[0];
+    sx = t.clientX; sy = t.clientY; dx = 0; moved = false; horizontal = null;
+    row.style.transition = 'none';
+    lpTimer = setTimeout(() => { lpTimer = null; if (!moved) enterSelect(id); }, 500);
+  }, { passive: true });
+
+  row.addEventListener('touchmove', (ev) => {
+    if (selectMode) return;
+    const t = ev.touches[0];
+    dx = t.clientX - sx;
+    const dy = t.clientY - sy;
+    if (!moved && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      moved = true;
+      clearTimeout(lpTimer); lpTimer = null;
+      horizontal = Math.abs(dx) > Math.abs(dy);
+    }
+    if (moved && horizontal) {
+      row.style.transform = 'translateX(' + dx + 'px)';
+      wrap.querySelector('.under-l').style.opacity = dx > 0 ? 1 : 0;
+      wrap.querySelector('.under-r').style.opacity = dx < 0 ? 1 : 0;
+    }
+  }, { passive: true });
+
+  row.addEventListener('touchend', () => {
+    clearTimeout(lpTimer); lpTimer = null;
+    row.style.transition = 'transform var(--dur-base) var(--ease-out)';
+    if (moved && horizontal && Math.abs(dx) > 80) {
+      if (dx < 0) {
+        // swipe left → soft delete with commit animation
+        row.style.transform = 'translateX(-110%)';
+        setTimeout(() => {
+          softDelete(id);
+          render();
+          toast('Moved to recycle bin.');
+        }, 180);
+      } else {
+        // swipe right → recategorize sheet
+        row.style.transform = 'translateX(0)';
+        recatTarget = id;
+        openRecatSheet();
+      }
+    } else {
+      row.style.transform = 'translateX(0)'; // snap back
+    }
+  });
+  row.addEventListener('touchcancel', () => {
+    clearTimeout(lpTimer); lpTimer = null;
+    row.style.transition = 'transform var(--dur-base) var(--ease-out)';
+    row.style.transform = 'translateX(0)';
+  });
+}
+
+/* ---------------- Desktop drag & drop between category sections ---------------- */
+function bindRowDrag(row, id) {
+  row.draggable = true;
+  row.addEventListener('dragstart', (ev) => {
+    ev.dataTransfer.setData('text/plain', id);
+    ev.dataTransfer.effectAllowed = 'move';
+    row.classList.add('dragging');
+  });
+  row.addEventListener('dragend', () => row.classList.remove('dragging'));
+}
+function bindSectionDrop(sec, catKey) {
+  sec.addEventListener('dragover', (ev) => { ev.preventDefault(); sec.classList.add('drop-hover'); });
+  sec.addEventListener('dragleave', () => sec.classList.remove('drop-hover'));
+  sec.addEventListener('drop', (ev) => {
+    ev.preventDefault();
+    sec.classList.remove('drop-hover');
+    const id = ev.dataTransfer.getData('text/plain');
+    const e = entryById(id);
+    if (!e) return;
+    // drop adds the tag; Shift-drop replaces all tags with it
+    if (!catKey) e.catIds = [];
+    else if (ev.shiftKey) e.catIds = [catKey];
+    else if (!(e.catIds || []).includes(catKey)) e.catIds = (e.catIds || []).concat(catKey);
+    saveEntries();
+    render();
+  });
+}
+/* ---------------- Editor ---------------- */
+const edBody = $('edBody');
+const edTitle = $('edTitle');
+let edSaveTimer = null;
+
+function openEditor(id) {
+  const e = entryById(id);
+  if (!e) return;
+  editingId = id;
+  recentNotes = [id].concat(recentNotes.filter((x) => x !== id)).slice(0, 10);
+  saveRecents();
+
+  edTitle.value = e.title || '';
+  if (e.richHTML) edBody.innerHTML = e.content || '';
+  else { edBody.innerHTML = ''; edBody.innerText = e.content || ''; }
+  $('edMeta').textContent = folderPath(e.folderId) + ' · ' + new Date(e.ts).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  renderEdPin();
+  renderEdTags();
+  renderEdMedia();
+  $('editorView').classList.remove('hidden');
+  pushNav(() => {
+    flushEditorSave();
+    editingId = null;
+    $('editorView').classList.add('hidden');
+    render();
+  });
+}
+$('edBack').addEventListener('click', navBack);
+
+function scheduleEditorSave() {
+  clearTimeout(edSaveTimer);
+  edSaveTimer = setTimeout(flushEditorSave, 400);
+}
+function flushEditorSave() {
+  clearTimeout(edSaveTimer);
+  const e = entryById(editingId);
+  if (!e) return;
+  e.title = edTitle.value.trim();
+  e.content = edBody.innerHTML;
+  e.richHTML = true;
+  saveEntries();
+}
+edTitle.addEventListener('input', scheduleEditorSave);
+edBody.addEventListener('input', scheduleEditorSave);
+
+function renderEdPin() {
+  const on = pins.includes(editingId);
+  $('edPin').innerHTML = '<span class="iconify" data-icon="solar:pin-' + (on ? 'bold' : 'linear') + '"></span>';
+  $('edPin').classList.toggle('accent', on);
+}
+$('edPin').addEventListener('click', () => {
+  if (pins.includes(editingId)) { pins = pins.filter((p) => p !== editingId); toast('Unpinned.'); }
+  else { pins.unshift(editingId); toast('Pinned.'); }
+  savePins();
+  renderEdPin();
+});
+$('edDelete').addEventListener('click', () => {
+  const id = editingId;
+  navBack(); // close editor first
+  setTimeout(() => { softDelete(id); render(); toast('Moved to recycle bin.'); }, 50);
+});
+
+/* ----- editor tags ----- */
+function renderEdTags() {
+  const e = entryById(editingId);
+  if (!e) return;
+  const box = $('edTags');
+  box.innerHTML = '';
+  (e.catIds || []).forEach((cid) => {
+    const c = catById(cid);
+    if (!c) return;
+    const b = document.createElement('button');
+    b.className = 'ed-tag';
+    b.innerHTML = esc(c.name) + ' <span class="iconify" data-icon="solar:close-circle-bold" style="font-size:13px"></span>';
+    b.title = 'Remove tag';
+    b.addEventListener('click', () => {
+      e.catIds = e.catIds.filter((x) => x !== cid);
+      saveEntries(); renderEdTags();
+    });
+    box.appendChild(b);
+  });
+  const add = document.createElement('button');
+  add.className = 'ed-tag add';
+  add.innerHTML = '<span class="iconify" data-icon="solar:add-circle-linear" style="font-size:13px"></span> Tag';
+  add.addEventListener('click', () => { recatTarget = editingId; openRecatSheet(true); });
+  box.appendChild(add);
+}
+
+/* ----- toolbar formatting ----- */
+document.querySelectorAll('#edToolbar [data-cmd]').forEach((b) => {
+  b.addEventListener('mousedown', (ev) => ev.preventDefault()); // keep selection
+  b.addEventListener('click', () => {
+    edBody.focus();
+    document.execCommand(b.dataset.cmd, false, null);
+    scheduleEditorSave();
+  });
+});
+
+/* ----- plain-text-only paste (keeps stored HTML clean) ----- */
+edBody.addEventListener('paste', (ev) => {
+  ev.preventDefault();
+  const text = (ev.clipboardData || window.clipboardData).getData('text/plain');
+  document.execCommand('insertText', false, text);
+});
+
+/* ----- checklist lines ----- */
+function makeCheckLine(text) {
+  const div = document.createElement('div');
+  div.className = 'ck';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.contentEditable = 'false';
+  const span = document.createElement('span');
+  span.innerHTML = text || '<br>';
+  div.appendChild(cb);
+  div.appendChild(span);
+  return div;
+}
+function currentBlock() {
+  const sel = getSelection();
+  if (!sel.rangeCount) return null;
+  let n = sel.getRangeAt(0).startContainer;
+  while (n && n !== edBody && n.parentNode !== edBody) n = n.parentNode;
+  return n === edBody ? null : n;
+}
+function placeCaret(node, atEnd) {
+  const r = document.createRange();
+  r.selectNodeContents(node);
+  r.collapse(!atEnd);
+  const sel = getSelection();
+  sel.removeAllRanges();
+  sel.addRange(r);
+}
+$('tbCheck').addEventListener('mousedown', (ev) => ev.preventDefault());
+$('tbCheck').addEventListener('click', () => {
+  edBody.focus();
+  const blk = currentBlock();
+  if (blk && blk.nodeType === 1 && blk.classList.contains('ck')) {
+    // toggle off: unwrap to plain line
+    const span = blk.querySelector('span');
+    const div = document.createElement('div');
+    div.innerHTML = span ? span.innerHTML : '<br>';
+    blk.replaceWith(div);
+    placeCaret(div, true);
+  } else if (blk) {
+    const ck = makeCheckLine(blk.nodeType === 1 ? blk.innerHTML : esc(blk.textContent));
+    blk.replaceWith(ck);
+    placeCaret(ck.querySelector('span'), true);
+  } else {
+    const ck = makeCheckLine('');
+    edBody.appendChild(ck);
+    placeCaret(ck.querySelector('span'), true);
+  }
+  scheduleEditorSave();
+});
+/* persist checkbox state into serialized HTML */
+edBody.addEventListener('change', (ev) => {
+  const cb = ev.target;
+  if (cb && cb.type === 'checkbox') {
+    if (cb.checked) cb.setAttribute('checked', '');
+    else cb.removeAttribute('checked');
+    scheduleEditorSave();
+  }
+});
+
+/* Enter/Backspace inside checklists keep the list format */
+edBody.addEventListener('keydown', (ev) => {
+  const blk = currentBlock();
+  const inCk = blk && blk.nodeType === 1 && blk.classList && blk.classList.contains('ck');
+  if (ev.key === 'Enter' && inCk) {
+    ev.preventDefault();
+    const span = blk.querySelector('span');
+    const empty = !span || !span.textContent.trim();
+    if (empty) {
+      // empty item → exit checklist
+      const div = document.createElement('div');
+      div.innerHTML = '<br>';
+      blk.replaceWith(div);
+      placeCaret(div, false);
+    } else {
+      const ck = makeCheckLine('');
+      blk.after(ck);
+      placeCaret(ck.querySelector('span'), false);
+    }
+    scheduleEditorSave();
+    return;
+  }
+  if (ev.key === 'Backspace' && inCk) {
+    const sel = getSelection();
+    if (sel.rangeCount && sel.getRangeAt(0).collapsed) {
+      const r = sel.getRangeAt(0);
+      const span = blk.querySelector('span');
+      const pre = document.createRange();
+      pre.selectNodeContents(span);
+      pre.setEnd(r.startContainer, r.startOffset);
+      if (!pre.toString().length) {
+        // caret at start of checklist text → unwrap to plain line
+        ev.preventDefault();
+        const div = document.createElement('div');
+        div.innerHTML = span.innerHTML || '<br>';
+        blk.replaceWith(div);
+        placeCaret(div, false);
+        scheduleEditorSave();
+      }
+    }
+  }
+});
+
+/* ----- live shorthand + inline #tag capture in the editor -----
+   Fires on space / punctuation / Enter: looks at the word just
+   before the caret and expands it via the dictionary (respecting
+   the note's folder), or creates/applies a category for #tags. */
+const TRIGGER_KEYS = [' ', 'Enter', '.', ',', '!', '?', ';', ':'];
+edBody.addEventListener('keydown', (ev) => {
+  if (!TRIGGER_KEYS.includes(ev.key)) return;
+  const e = entryById(editingId);
+  if (!e) return;
+  const sel = getSelection();
+  if (!sel.rangeCount || !sel.getRangeAt(0).collapsed) return;
+  const r = sel.getRangeAt(0);
+  if (r.startContainer.nodeType !== 3) return; // text nodes only
+  const textNode = r.startContainer;
+  const before = textNode.textContent.slice(0, r.startOffset);
+  const m = before.match(/(#?[\w'-]+)$/);
+  if (!m) return;
+  const word = m[1];
+
+  if (word.startsWith('#') && word.length > 1) {
+    // inline tag capture: create/apply category on the fly; the typed token
+    // is removed — the tag lives in catIds, not the text
+    ev.preventDefault();
+    const name = word.slice(1);
+    let c = cats.find((x) => x.name.toLowerCase() === name.toLowerCase());
+    if (!c) { c = { id: uid(), name: name, prefix: '' }; cats.push(c); saveCats(); }
+    if (!(e.catIds || []).includes(c.id)) {
+      e.catIds = (e.catIds || []).concat(c.id);
+      saveEntries();
+      renderEdTags();
+    }
+    const wr = document.createRange();
+    wr.setStart(textNode, r.startOffset - word.length);
+    wr.setEnd(textNode, r.startOffset);
+    sel.removeAllRanges();
+    sel.addRange(wr);
+    document.execCommand('delete', false, null);
+    const ic = ev.key === 'Enter' ? '\n' : (ev.key === ' ' ? '' : ev.key);
+    if (ic) document.execCommand('insertText', false, ic);
+    scheduleEditorSave();
+    toast('Tagged ' + c.name + '.');
+    return;
+  }
+
+  if (!shorthandOn(e.folderId)) return;
+  const rep = dictMapFor(e.folderId)[word.toLowerCase()];
+  if (rep == null) return;
+  const expanded = liveTokens(rep);
+  const start = r.startOffset - word.length;
+  textNode.textContent = before.slice(0, start) + expanded + textNode.textContent.slice(r.startOffset);
+  const nr = document.createRange();
+  nr.setStart(textNode, start + expanded.length);
+  nr.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(nr);
+  scheduleEditorSave();
+});
+
+/* ---------------- Media: photos & voice ---------------- */
+let photoTarget = null; // 'editor' | 'dock'
+$('tbPhoto').addEventListener('click', () => { photoTarget = 'editor'; $('photoInput').click(); });
+$('dockCam').addEventListener('click', () => { photoTarget = 'dock'; $('photoInput').click(); });
+
+$('photoInput').addEventListener('change', async () => {
+  const file = $('photoInput').files[0];
+  $('photoInput').value = '';
+  if (!file) return;
+  const mid = uid();
+  try { await idbPut('images', mid, file); }
+  catch (err) { toast("Couldn't save the photo."); return; }
+  if (photoTarget === 'editor' && editingId) {
+    const e = entryById(editingId);
+    if (e.imageId) await idbDel('images', e.imageId);
+    e.imageId = mid;
+    saveEntries();
+    renderEdMedia();
+  } else {
+    const e = addQuickEntry('', { imageId: mid });
+    render();
+    toast('Photo note saved.');
+  }
+});
+
+/* voice recording via MediaRecorder, with a full-screen timer overlay */
+let rec = null, recChunks = [], recTarget = null, recTimer = null, recSecs = 0;
+function showRecOverlay() {
+  recSecs = 0;
+  $('recTime').textContent = '00:00';
+  $('recOverlay').classList.remove('hidden');
+  recTimer = setInterval(() => {
+    recSecs++;
+    $('recTime').textContent =
+      String(Math.floor(recSecs / 60)).padStart(2, '0') + ':' + String(recSecs % 60).padStart(2, '0');
+  }, 1000);
+}
+function hideRecOverlay() {
+  clearInterval(recTimer);
+  recTimer = null;
+  $('recOverlay').classList.add('hidden');
+}
+async function toggleRec(target, btn) {
+  if (rec) { rec.stop(); return; }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (err) { toast('Microphone unavailable.'); return; }
+  rec = new MediaRecorder(stream);
+  recChunks = [];
+  recTarget = target;
+  rec.ondataavailable = (ev) => { if (ev.data.size) recChunks.push(ev.data); };
+  rec.onstop = async () => {
+    stream.getTracks().forEach((t) => t.stop());
+    const blob = new Blob(recChunks, { type: rec.mimeType || 'audio/webm' });
+    rec = null;
+    hideRecOverlay();
+    updateRecUI();
+    if (!blob.size) return;
+    const mid = uid();
+    try { await idbPut('audio', mid, blob); }
+    catch (err) { toast("Couldn't save the recording."); return; }
+    if (recTarget === 'editor' && editingId) {
+      const e = entryById(editingId);
+      if (e.audioId) await idbDel('audio', e.audioId);
+      e.audioId = mid;
+      saveEntries();
+      renderEdMedia();
+    } else {
+      addQuickEntry('', { audioId: mid });
+      render();
+      toast('Voice note saved.');
+    }
+  };
+  rec.start();
+  showRecOverlay();
+  updateRecUI();
+}
+function updateRecUI() {
+  $('dockMic').classList.toggle('recording', !!rec && recTarget === 'dock');
+  $('tbMic').classList.toggle('danger', !!rec && recTarget === 'editor');
+}
+$('dockMic').addEventListener('click', () => toggleRec('dock'));
+$('tbMic').addEventListener('click', () => toggleRec('editor'));
+$('recStop').addEventListener('click', () => { if (rec) rec.stop(); });
+
+/* attachments panel in the editor, hydrated from IndexedDB blobs */
+async function renderEdMedia() {
+  const e = entryById(editingId);
+  const box = $('edMedia');
+  box.innerHTML = '';
+  if (!e) return;
+  if (e.imageId) {
+    try {
+      const blob = await idbGet('images', e.imageId);
+      if (blob) {
+        const card = document.createElement('div');
+        card.className = 'media-card';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(blob);
+        img.alt = 'Attached photo';
+        const rm = document.createElement('button');
+        rm.className = 'rm';
+        rm.innerHTML = '<span class="iconify" data-icon="solar:trash-bin-trash-linear"></span>';
+        rm.addEventListener('click', async () => {
+          await idbDel('images', e.imageId);
+          delete e.imageId;
+          saveEntries(); renderEdMedia();
+        });
+        card.appendChild(img); card.appendChild(rm);
+        box.appendChild(card);
+      }
+    } catch (err) { /* media store unavailable */ }
+  }
+  if (e.audioId) {
+    try {
+      const blob = await idbGet('audio', e.audioId);
+      if (blob) {
+        const card = document.createElement('div');
+        card.className = 'media-card';
+        const au = document.createElement('audio');
+        au.controls = true;
+        au.src = URL.createObjectURL(blob);
+        const rm = document.createElement('button');
+        rm.className = 'rm';
+        rm.innerHTML = '<span class="iconify" data-icon="solar:trash-bin-trash-linear"></span>';
+        rm.addEventListener('click', async () => {
+          await idbDel('audio', e.audioId);
+          delete e.audioId;
+          saveEntries(); renderEdMedia();
+        });
+        card.appendChild(au); card.appendChild(rm);
+        box.appendChild(card);
+      }
+    } catch (err) { /* media store unavailable */ }
+  }
+}
+
+/* ---------------- Rapid capture dock ---------------- */
+function submitLog() {
+  const raw = $('logInput').value.trim();
+  if (!raw) return;
+  addQuickEntry(raw);
+  $('logInput').value = '';
+  render();
+  toast('Note saved.');
+}
+$('logInput').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') submitLog(); });
+$('dockNew').addEventListener('click', () => {
+  const raw = $('logInput').value.trim();
+  if (raw) { submitLog(); return; }
+  // reuse an existing empty note instead of piling up blanks
+  const existing = liveEntries().find((x) =>
+    (x.folderId || null) === currentFolder && !x.title && !x.imageId && !x.audioId && !entryText(x).trim());
+  const e = existing || addQuickEntry('');
+  render();
+  openEditor(e.id);
+});
+/* ---------------- Generic modal / sheet plumbing ---------------- */
+function openOverlay(el) {
+  el.classList.add('show');
+  $('scrim').classList.add('show');
+  pushNav(() => {
+    el.classList.remove('show');
+    if (!sidebarOpen && !document.querySelector('.modal.show, .sheet.show, #moreMenu.show')) {
+      $('scrim').classList.remove('show');
+    }
+  });
+}
+function closeTopModal() {
+  if (document.querySelector('.modal.show, .sheet.show, #moreMenu.show')) navBack();
+}
+document.querySelectorAll('.modal').forEach((m) => {
+  m.addEventListener('click', (ev) => { if (ev.target === m) navBack(); });
+});
+
+/* ---------------- More menu ---------------- */
+$('btnMore').addEventListener('click', () => openOverlay($('moreMenu')));
+$('moreMenu').addEventListener('click', (ev) => {
+  const item = ev.target.closest('[data-act]');
+  if (!item) return;
+  const act = item.dataset.act;
+  unwindNav(1); // close the menu
+  if (act === 'export') openExportModal();
+  else if (act === 'tags') openTagsSheet();
+  else if (act === 'dict') openDictModal();
+  else if (act === 'bin') openBinModal();
+  else if (act === 'settings') openSettingsModal();
+});
+
+/* ---------------- Recategorize / move sheet ---------------- */
+function openRecatSheet(tagsOnly) {
+  const single = recatTarget != null;
+  $('recatTitle').textContent = single ? 'Organize note' : 'Move ' + selected.size + ' notes';
+  $('recatTagsWrap').classList.toggle('hidden', !single);
+
+  const fl = $('recatFolders');
+  fl.innerHTML = '';
+  const addRow = (id, name, depth) => {
+    const r = document.createElement('div');
+    r.className = 'm-row';
+    r.style.paddingLeft = (8 + depth * 20) + 'px';
+    r.innerHTML = '<span class="iconify lead" data-icon="' + (id == null ? 'solar:home-2-linear' : 'solar:folder-linear') + '"></span><span class="grow">' + esc(name) + '</span>';
+    r.addEventListener('click', () => {
+      const ids = single ? [recatTarget] : Array.from(selected);
+      ids.forEach((eid) => { const e = entryById(eid); if (e) e.folderId = id; });
+      saveEntries();
+      exitSelect();
+      unwindNav(1);
+      render();
+      if (editingId) $('edMeta').textContent = folderPath(id) + ' · ' + new Date(entryById(editingId).ts).toLocaleString();
+      toast('Moved to ' + name + '.');
+    });
+    fl.appendChild(r);
+  };
+  addRow(null, 'Home', 0);
+  const walk = (pid, depth) => childFolders(pid).forEach((f) => { addRow(f.id, f.name, depth); walk(f.id, depth + 1); });
+  walk(null, 1);
+
+  if (single) {
+    const e = entryById(recatTarget);
+    const tl = $('recatTags');
+    tl.innerHTML = '';
+    cats.forEach((c) => {
+      const b = document.createElement('button');
+      const on = e && (e.catIds || []).includes(c.id);
+      b.className = 'ed-tag' + (on ? '' : ' add');
+      b.textContent = c.name + (c.prefix ? ' · ' + c.prefix : '');
+      b.addEventListener('click', () => {
+        if (!e) return;
+        e.catIds = on ? e.catIds.filter((x) => x !== c.id) : (e.catIds || []).concat(c.id);
+        saveEntries();
+        openRecatSheetRefresh();
+        if (editingId) renderEdTags();
+      });
+      tl.appendChild(b);
+    });
+  }
+  if (!$('sheetRecat').classList.contains('show')) openOverlay($('sheetRecat'));
+}
+function openRecatSheetRefresh() { openRecatSheet(); }
+
+/* ---------------- Tags sheet ---------------- */
+function openTagsSheet() {
+  renderTagList();
+  openOverlay($('sheetTags'));
+}
+function renderTagList() {
+  const box = $('tagList');
+  box.innerHTML = '';
+  if (!cats.length) box.innerHTML = '<div class="empty-note" style="padding:var(--space-4)">No tags yet.</div>';
+  cats.forEach((c) => {
+    const r = document.createElement('div');
+    r.className = 'm-row';
+    r.innerHTML =
+      '<span class="iconify lead" data-icon="solar:hashtag-linear"></span>' +
+      '<span class="grow">' + esc(c.name) + (c.prefix ? '<span class="sub">Prefix: ' + esc(c.prefix) + '</span>' : '') + '</span>' +
+      '<button class="mini danger" aria-label="Delete tag"><span class="iconify" data-icon="solar:trash-bin-trash-linear"></span></button>';
+    r.querySelector('.mini').addEventListener('click', () => {
+      cats = cats.filter((x) => x.id !== c.id);
+      entries.forEach((e) => { if (e.catIds) e.catIds = e.catIds.filter((x) => x !== c.id); });
+      saveCats(); saveEntries();
+      renderTagList(); render();
+    });
+    box.appendChild(r);
+  });
+}
+$('btnAddTag').addEventListener('click', () => {
+  const name = $('tagName').value.trim();
+  if (!name) return;
+  const prefix = $('tagPrefix').value.trim();
+  if (prefix && cats.some((c) => c.prefix === prefix)) { toast('That prefix is already in use.'); return; }
+  cats.push({ id: uid(), name, prefix });
+  saveCats();
+  $('tagName').value = ''; $('tagPrefix').value = '';
+  renderTagList(); render();
+});
+
+/* ---------------- Folder modal ---------------- */
+let folderEditing = null;
+function openFolderModal(id) {
+  folderEditing = id;
+  const f = folderById(id);
+  $('folderModalTitle').textContent = f ? 'Edit folder' : 'New folder';
+  $('folderName').value = f ? f.name : '';
+  $('folderShorthand').checked = f ? f.shorthandEnabled !== false : true;
+  $('folderDelete').classList.toggle('hidden', !f);
+
+  const sel = $('folderParent');
+  sel.innerHTML = '<option value="">Home</option>';
+  const banned = f ? [f.id].concat(descendantIds(f.id)) : [];
+  const walk = (pid, depth) => childFolders(pid).forEach((x) => {
+    if (banned.includes(x.id)) return;
+    const o = document.createElement('option');
+    o.value = x.id;
+    o.textContent = '— '.repeat(depth) + x.name;
+    sel.appendChild(o);
+    walk(x.id, depth + 1);
+  });
+  walk(null, 0);
+  sel.value = f && f.parentId ? f.parentId : '';
+  openOverlay($('modalFolder'));
+}
+$('folderSave').addEventListener('click', () => {
+  const name = $('folderName').value.trim();
+  if (!name) { toast('Give the folder a name.'); return; }
+  const parentId = $('folderParent').value || null;
+  const shorthandEnabled = $('folderShorthand').checked;
+  if (folderEditing) {
+    const f = folderById(folderEditing);
+    Object.assign(f, { name, parentId, shorthandEnabled });
+  } else {
+    folders.push({ id: uid(), name, parentId, shorthandEnabled });
+  }
+  saveFolders();
+  unwindNav(1);
+  render();
+  toast('Folder saved.');
+});
+$('folderDelete').addEventListener('click', () => {
+  if (!folderEditing) return;
+  if (!confirm('Delete this folder and its sub-folders? Notes move to Home.')) return;
+  const doomed = [folderEditing].concat(descendantIds(folderEditing));
+  // notes move to Home; sub-folders are deleted too
+  entries.forEach((e) => { if (doomed.includes(e.folderId)) e.folderId = null; });
+  folders = folders.filter((f) => !doomed.includes(f.id));
+  dict.forEach((d) => { if (d.folders) d.folders = d.folders.filter((x) => !doomed.includes(x)); });
+  recentFolders = recentFolders.filter((x) => !doomed.includes(x));
+  if (doomed.includes(currentFolder)) currentFolder = null;
+  saveFolders(); saveEntries(); saveDict(); saveRecents();
+  folderEditing = null;
+  unwindNav(1);
+  goHomeFully();
+  toast('Folder deleted. Notes moved to Home.');
+});
+
+/* ---------------- Dictionary modal + folder access ---------------- */
+let dictEditing = null;
+function openDictModal() {
+  renderDictList();
+  openOverlay($('modalDict'));
+}
+function renderDictList() {
+  const box = $('dictList');
+  box.innerHTML = '';
+  if (!dict.length) box.innerHTML = '<div class="empty-note" style="padding:var(--space-4)">No shorthand yet.</div>';
+  dict.forEach((d, i) => {
+    const scoped = d.folders && d.folders.length;
+    const r = document.createElement('div');
+    r.className = 'm-row';
+    r.innerHTML =
+      '<span class="grow"><b>' + esc(d.k) + '</b> → ' + esc(d.v) +
+      '<span class="sub">' + (scoped ? d.folders.map(folderName).join(', ') : 'All folders') + '</span></span>' +
+      '<button class="mini" aria-label="Folder access"><span class="iconify" data-icon="solar:folder-' + (scoped ? 'bold' : 'linear') + '"></span></button>' +
+      '<button class="mini danger" aria-label="Delete"><span class="iconify" data-icon="solar:trash-bin-trash-linear"></span></button>';
+    const btns = r.querySelectorAll('.mini');
+    btns[0].addEventListener('click', () => openDictAccess(i));
+    btns[1].addEventListener('click', () => { dict.splice(i, 1); saveDict(); renderDictList(); });
+    box.appendChild(r);
+  });
+}
+$('btnAddDict').addEventListener('click', () => {
+  const k = $('dictKey').value.trim();
+  const v = $('dictVal').value.trim();
+  if (!k || !v) return;
+  if (!/^[\w'-]+$/.test(k)) { toast('Shorthand keys are single words.'); return; }
+  const existing = dict.find((d) => d.k.toLowerCase() === k.toLowerCase());
+  if (existing) existing.v = v;
+  else dict.push({ k, v, folders: null });
+  saveDict();
+  $('dictKey').value = ''; $('dictVal').value = '';
+  renderDictList();
+});
+function openDictAccess(i) {
+  dictEditing = i;
+  const d = dict[i];
+  $('dictAccessSub').innerHTML = 'Where “<b>' + esc(d.k) + '</b>” expands. Folder access includes sub-folders.';
+  $('dictAccessAll').checked = !(d.folders && d.folders.length);
+  renderDictAccessList();
+  openOverlay($('modalDictAccess'));
+}
+function renderDictAccessList() {
+  const d = dict[dictEditing];
+  const box = $('dictAccessList');
+  box.innerHTML = '';
+  const all = $('dictAccessAll').checked;
+  const isInherited = (f) => {
+    if (all || !d.folders) return false;
+    let p = folderById(f.parentId);
+    while (p) {
+      if (d.folders.includes(p.id)) return true;
+      p = folderById(p.parentId);
+    }
+    return false;
+  };
+  const walk = (pid, depth) => childFolders(pid).forEach((f) => {
+    const inherited = isInherited(f);
+    const r = document.createElement('div');
+    r.className = 'switch-row';
+    r.style.paddingLeft = (depth * 20) + 'px';
+    r.style.opacity = (all || inherited) ? 0.4 : 1;
+    const on = !all && d.folders && d.folders.includes(f.id);
+    r.innerHTML = '<span class="grow">' + esc(f.name) +
+      (inherited ? ' <span style="color:var(--text-subtle);font-size:var(--text-tiny)">(inherited)</span>' : '') +
+      '</span><span class="sw"><input type="checkbox"' + ((on || inherited) ? ' checked' : '') + ((all || inherited) ? ' disabled' : '') + '><i></i></span>';
+    r.querySelector('input').addEventListener('change', (ev) => {
+      d.folders = d.folders || [];
+      if (ev.target.checked) d.folders.push(f.id);
+      else d.folders = d.folders.filter((x) => x !== f.id);
+      if (!d.folders.length) { d.folders = null; $('dictAccessAll').checked = true; }
+      saveDict();
+      renderDictAccessList();
+    });
+    box.appendChild(r);
+    walk(f.id, depth + 1);
+  });
+  walk(null, 0);
+  if (!folders.length) box.innerHTML = '<div class="empty-note" style="padding:var(--space-3)">No folders yet — this shorthand works everywhere.</div>';
+}
+$('dictAccessAll').addEventListener('change', () => {
+  const d = dict[dictEditing];
+  if ($('dictAccessAll').checked) d.folders = null;
+  else d.folders = d.folders || [];
+  saveDict();
+  renderDictAccessList();
+});
+$('dictAccessDone').addEventListener('click', () => { unwindNav(1); renderDictList(); });
+
+/* ---------------- Recycle bin ---------------- */
+function openBinModal() {
+  renderBinList();
+  openOverlay($('modalBin'));
+}
+function renderBinList() {
+  const box = $('binList');
+  box.innerHTML = '';
+  const items = binEntries().sort((a, b) => b.deletedAt - a.deletedAt);
+  if (!items.length) {
+    box.innerHTML = '<div class="empty-note" style="padding:var(--space-4)">The bin is empty.</div>';
+    return;
+  }
+  items.forEach((e) => {
+    const daysLeft = Math.max(0, Math.ceil((e.deletedAt + BIN_TTL - Date.now()) / 86400000));
+    const r = document.createElement('div');
+    r.className = 'm-row';
+    r.innerHTML =
+      '<span class="grow">' + esc(entryTitle(e)) + '<span class="sub">' + esc(entryText(e).slice(0, 60)) + '</span></span>' +
+      '<span class="badge-ttl">' + daysLeft + 'd</span>' +
+      '<button class="mini" aria-label="Restore"><span class="iconify" data-icon="solar:refresh-linear"></span></button>' +
+      '<button class="mini danger" aria-label="Delete forever"><span class="iconify" data-icon="solar:trash-bin-trash-linear"></span></button>';
+    const btns = r.querySelectorAll('.mini');
+    btns[0].addEventListener('click', () => {
+      delete e.deletedAt;
+      saveEntries();
+      renderBinList(); render();
+      toast('Note restored.');
+    });
+    btns[1].addEventListener('click', async () => {
+      if (!confirm('Delete this note forever? You can’t undo this.')) return;
+      await hardDelete(e.id);
+      renderBinList();
+      renderSidebar();
+    });
+    box.appendChild(r);
+  });
+}
+$('btnEmptyBin').addEventListener('click', async () => {
+  const n = binEntries().length;
+  if (!n) return;
+  if (!confirm('Permanently delete all ' + n + ' note(s) in the bin?')) return;
+  for (const e of binEntries()) await hardDelete(e.id);
+  renderBinList();
+  renderSidebar();
+  toast('Bin emptied.');
+});
+
+/* ---------------- Settings ---------------- */
+function openSettingsModal() {
+  $('aiKeyInput').value = localStorage.getItem(LS.aiKey) || '';
+  $('aiTestResult').textContent = '';
+  openOverlay($('modalSettings'));
+}
+$('btnSaveKey').addEventListener('click', () => {
+  const k = $('aiKeyInput').value.trim();
+  if (k) localStorage.setItem(LS.aiKey, k);
+  else localStorage.removeItem(LS.aiKey);
+  unwindNav(1);
+  render();
+  toast(k ? 'Key saved.' : 'Key cleared.');
+});
+$('btnClearKey').addEventListener('click', () => {
+  localStorage.removeItem(LS.aiKey);
+  localStorage.removeItem(LS.aiCache);
+  $('aiKeyInput').value = '';
+  render();
+  toast('Key cleared.');
+});
+$('btnExportAll').addEventListener('click', () => exportTxt(liveEntries(), 'rapid-notes-all'));
+
+/* ---------------- Export ---------------- */
+function exportEntriesForCurrent() {
+  return liveEntries().filter((e) => (e.folderId || null) === currentFolder).sort((a, b) => b.ts - a.ts);
+}
+function openExportModal() {
+  $('exportTitle').textContent = 'Export “' + folderName(currentFolder) + '”';
+  openOverlay($('modalExport'));
+}
+function exportTxt(items, name) {
+  const lines = items.map((e) => {
+    const parts = [];
+    if (e.title) parts.push(e.title.toUpperCase());
+    const body = entryText(e);
+    if (body) parts.push(body);
+    parts.push(new Date(e.ts).toLocaleString() + ' · ' + folderPath(e.folderId));
+    return parts.join('\n');
+  });
+  const blob = new Blob([lines.join('\n\n----------------\n\n')], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name + '.txt';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast('Exported.');
+}
+$('btnExpTxt').addEventListener('click', () => {
+  exportTxt(exportEntriesForCurrent(), 'rapid-notes-' + folderName(currentFolder).toLowerCase().replace(/\s+/g, '-'));
+  unwindNav(1);
+});
+$('btnExpPdf').addEventListener('click', () => {
+  const items = exportEntriesForCurrent();
+  const w = window.open('', '_blank');
+  if (!w) { toast('Allow pop-ups to export PDF.'); return; }
+  const body = items.map((e) =>
+    '<article><h2>' + esc(entryTitle(e)) + '</h2>' +
+    '<div class="meta">' + new Date(e.ts).toLocaleString() + '</div>' +
+    '<div class="body">' + (e.richHTML ? e.content : esc(e.content).replace(/\n/g, '<br>')) + '</div></article>'
+  ).join('');
+  w.document.write(
+    '<!doctype html><html><head><meta charset="utf-8"><title>' + esc(folderName(currentFolder)) + ' — Rapid Notes</title>' +
+    '<style>body{font-family:Inter,system-ui,sans-serif;color:#1a231c;max-width:700px;margin:40px auto;padding:0 24px}' +
+    'h1{font-size:26px;border-bottom:2px solid #4cd36f;padding-bottom:10px}h2{font-size:17px;margin:26px 0 2px}' +
+    '.meta{color:#777;font-size:12px;margin-bottom:8px}.body{font-size:14px;line-height:1.6}' +
+    'article{page-break-inside:avoid}.ck{display:flex;gap:8px;align-items:flex-start}</style></head><body>' +
+    '<h1>' + esc(folderName(currentFolder)) + '</h1>' + (body || '<p>No notes.</p>') + '</body></html>'
+  );
+  w.document.close();
+  setTimeout(() => { w.focus(); w.print(); }, 300);
+  unwindNav(1);
+});
+
+/* ---------------- AI (DeepSeek, optional BYO key) ---------------- */
+const aiKey = () => localStorage.getItem(LS.aiKey) || '';
+async function dsChat(messages) {
+  let res;
+  try {
+    res = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + aiKey() },
+      body: JSON.stringify({ model: 'deepseek-chat', messages, temperature: 0.3, response_format: { type: 'json_object' } })
+    });
+  } catch (err) { throw { code: 'network' }; }
+  if (res.status === 401) throw { code: 'bad_key' };
+  if (res.status === 402) throw { code: 'no_credit' };
+  if (!res.ok) throw { code: 'network' };
+  const j = await res.json();
+  return j.choices[0].message.content;
+}
+function aiError(err) {
+  const msgs = {
+    bad_key: 'AI key rejected. Check it in Settings.',
+    no_credit: 'DeepSeek balance is empty. Top up to keep using AI.',
+    network: "Couldn't reach DeepSeek. Try again later."
+  };
+  const banner = $('aiBanner');
+  banner.querySelector('.msg').textContent = msgs[err.code] || msgs.network;
+  banner.classList.remove('hidden');
+}
+$('aiBannerClose').addEventListener('click', () => $('aiBanner').classList.add('hidden'));
+
+/* action-item extraction: inserts checklist lines at the top of the note */
+$('edAI').addEventListener('click', async () => {
+  if (!aiKey()) { toast('Add a DeepSeek key in Settings first.'); return; }
+  const e = entryById(editingId);
+  if (!e) return;
+  const text = (edTitle.value + '\n' + stripHTML(edBody.innerHTML)).trim();
+  if (!text) { toast('Nothing to extract yet.'); return; }
+  const btn = $('edAI');
+  btn.innerHTML = '<span class="iconify spin" data-icon="solar:refresh-linear"></span>';
+  try {
+    const raw = await dsChat([
+      { role: 'system', content: 'Extract concrete action items from the user\'s note. Respond with strict JSON: {"items":["...", "..."]} — max 8 short imperative items. If none, return {"items":[]}.' },
+      { role: 'user', content: text.slice(0, 4000) }
+    ]);
+    const items = (JSON.parse(raw).items || []).filter((s) => typeof s === 'string' && s.trim());
+    if (!items.length) { toast('No action items found.'); }
+    else {
+      items.reverse().forEach((it) => edBody.prepend(makeCheckLine(esc(it.trim()))));
+      scheduleEditorSave();
+      toast(items.length + ' action item' + (items.length === 1 ? '' : 's') + ' added.');
+    }
+  } catch (err) { aiError(err.code ? err : { code: 'network' }); }
+  btn.innerHTML = '<span class="iconify" data-icon="solar:magic-stick-3-linear"></span>';
+});
+
+/* dashboard summary of a chosen scope (all notes or one folder), cached by a
+   cheap fingerprint so it only re-fetches on explicit refresh */
+const AI_SCOPE_KEY = 'rapid_ai_scope_v1';
+function aiScope() {
+  const s = localStorage.getItem(AI_SCOPE_KEY) || '';
+  return s && folderById(s) ? s : '';
+}
+function aiScopeEntries(scope) {
+  const items = liveEntries();
+  return scope ? items.filter((e) => e.folderId === scope) : items;
+}
+function aiFingerprint(scope) {
+  const items = aiScopeEntries(scope);
+  const newest = items.length ? Math.max.apply(null, items.map((e) => e.ts)) : 0;
+  return items.length + ':' + newest;
+}
+function aiCacheMap() {
+  const c = lsGet(LS.aiCache, {});
+  // migrate the old single-summary shape
+  return (c && typeof c.overview === 'string') ? { '': c } : (c || {});
+}
+function renderAICard() {
+  const card = $('aiCard');
+  if (!aiKey()) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  const scope = aiScope();
+
+  const sel = $('aiScopeSel');
+  sel.innerHTML = '<option value="">All notes</option>';
+  const walk = (pid, depth) => childFolders(pid).forEach((f) => {
+    const o = document.createElement('option');
+    o.value = f.id;
+    o.textContent = '— '.repeat(depth) + f.name;
+    sel.appendChild(o);
+    walk(f.id, depth + 1);
+  });
+  walk(null, 0);
+  sel.value = scope;
+
+  const cache = aiCacheMap()[scope];
+  if (cache && cache.overview) {
+    $('aiOverview').textContent = cache.overview + (cache.fp !== aiFingerprint(scope) ? ' (tap refresh to update)' : '');
+    const at = $('aiAttention');
+    at.innerHTML = '';
+    (cache.attention || []).forEach((item) => {
+      const d = document.createElement('div');
+      d.className = 'ai-item';
+      d.innerHTML = '<span class="iconify" data-icon="solar:danger-triangle-linear"></span><span>' + esc(item.text) + '</span>';
+      if (item.id && entryById(item.id) && !entryById(item.id).deletedAt) {
+        d.addEventListener('click', () => openEditor(item.id));
+      }
+      at.appendChild(d);
+    });
+  } else {
+    $('aiOverview').textContent = 'Tap refresh to summarize ' + (scope ? '“' + folderName(scope) + '”.' : 'your latest notes.');
+    $('aiAttention').innerHTML = '';
+  }
+}
+$('aiScopeSel').addEventListener('change', () => {
+  localStorage.setItem(AI_SCOPE_KEY, $('aiScopeSel').value);
+  renderAICard();
+});
+$('aiRefresh').addEventListener('click', async () => {
+  if (!aiKey()) return;
+  const scope = aiScope();
+  const items = aiScopeEntries(scope).sort((a, b) => b.ts - a.ts).slice(0, 15);
+  if (!items.length) { toast('Nothing to summarize yet.'); return; }
+  const btn = $('aiRefresh');
+  btn.innerHTML = '<span class="iconify spin" data-icon="solar:refresh-linear"></span>';
+  const digest = items.map((e) => 'ID ' + e.id + ' | ' + entryTitle(e) + ' | ' + entryText(e).slice(0, 200)).join('\n');
+  try {
+    const raw = await dsChat([
+      { role: 'system', content: 'You summarize a user\'s recent notes. Respond with strict JSON: {"overview":"1-2 sentence overview","attention":[{"id":"note id","text":"short reason it needs attention"}]} — max 4 attention items, only genuinely actionable or time-sensitive ones. Use the exact note IDs given.' },
+      { role: 'user', content: digest.slice(0, 6000) }
+    ]);
+    const j = JSON.parse(raw);
+    const map = aiCacheMap();
+    map[scope] = { fp: aiFingerprint(scope), overview: j.overview || '', attention: (j.attention || []).slice(0, 4) };
+    Object.keys(map).forEach((k) => { if (k && !folderById(k)) delete map[k]; });
+    lsSet(LS.aiCache, map);
+    renderAICard();
+  } catch (err) { aiError(err.code ? err : { code: 'network' }); }
+  btn.innerHTML = '<span class="iconify" data-icon="solar:refresh-linear"></span>';
+});
+
+/* surface an exhausted balance or bad key early, without burning tokens */
+async function checkAiBalance() {
+  if (!aiKey()) return;
+  try {
+    const res = await fetch('https://api.deepseek.com/user/balance', {
+      headers: { 'Authorization': 'Bearer ' + aiKey() }
+    });
+    if (res.status === 401) { aiError({ code: 'bad_key' }); return; }
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.is_available) aiError({ code: 'no_credit' });
+  } catch (err) { /* offline — keep quiet */ }
+}
+$('aiTestBtn').addEventListener('click', async () => {
+  const out = $('aiTestResult');
+  const key = $('aiKeyInput').value.trim();
+  if (!key) { out.textContent = 'Enter an API key first.'; return; }
+  out.textContent = 'Testing…';
+  try {
+    const res = await fetch('https://api.deepseek.com/user/balance', {
+      headers: { 'Authorization': 'Bearer ' + key }
+    });
+    if (res.status === 401) { out.textContent = '✕ Key rejected — check it on platform.deepseek.com'; return; }
+    if (!res.ok) { out.textContent = '✕ DeepSeek returned an error (' + res.status + ')'; return; }
+    const data = await res.json();
+    out.textContent = data.is_available ? '✓ Connected — credits available' : '✓ Key works, but no credits left';
+  } catch (err) {
+    out.textContent = '✕ Network error — are you online?';
+  }
+});
+
+/* ---------------- Drag-to-dismiss bottom sheets ---------------- */
+function makeDraggableSheet(target, handle) {
+  let sy = 0, dy = 0, dragging = false;
+  handle.style.touchAction = 'none';
+  handle.addEventListener('touchstart', (ev) => {
+    sy = ev.touches[0].clientY; dy = 0; dragging = true;
+    target.style.transition = 'none';
+  }, { passive: true });
+  handle.addEventListener('touchmove', (ev) => {
+    if (!dragging) return;
+    dy = Math.max(0, ev.touches[0].clientY - sy);
+    target.style.transform = 'translateY(' + dy + 'px)';
+  }, { passive: true });
+  handle.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    target.style.transition = '';
+    target.style.transform = '';
+    if (dy > 80) navBack();
+  });
+}
+document.querySelectorAll('.sheet').forEach((s) => {
+  const grab = s.querySelector('.sheet-grab');
+  if (grab) makeDraggableSheet(s, grab);
+});
+document.querySelectorAll('.modal .modal-card').forEach((c) => {
+  const grab = document.createElement('div');
+  grab.className = 'sheet-grab';
+  c.insertBefore(grab, c.firstChild);
+  makeDraggableSheet(c, grab);
+});
+
+/* ---------------- Keyboard-aware dock (visualViewport) ---------------- */
+function vvFix() {
+  if (!window.visualViewport) return;
+  const kb = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
+  document.documentElement.style.setProperty('--kb', kb + 'px');
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', vvFix);
+  window.visualViewport.addEventListener('scroll', vvFix);
+}
+
+/* ---------------- Share target (PWA) ---------------- */
+function handleShareTarget() {
+  const sp = new URLSearchParams(location.search);
+  if (sp.get('action') === 'new') {
+    // launched from the app-icon shortcut
+    history.replaceState(null, '', location.pathname);
+    const e = addQuickEntry('');
+    setTimeout(() => openEditor(e.id), 50);
+    return;
+  }
+  const parts = [sp.get('title'), sp.get('text'), sp.get('url')].filter(Boolean);
+  if (!parts.length) return;
+  history.replaceState(null, '', location.pathname);
+  addQuickEntry(parts.join('\n'));
+  toast('Shared note saved.');
+}
+
+/* ---------------- Boot ---------------- */
+(async function init() {
+  await openMediaDB();
+  await autoPurgeBin();
+  handleShareTarget();
+  render();
+  vvFix();
+  checkAiBalance();
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
