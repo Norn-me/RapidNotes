@@ -12,6 +12,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rapid Notes">
+<script>
+/* Apply saved theme before first paint to avoid a dark flash. */
+try {
+  if (localStorage.getItem('rapid_theme_v1') === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f4f8f5');
+  }
+} catch (e) {}
+</script>
 <link rel="stylesheet" href="Design System/styles.css">
 <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
 <style>
@@ -35,6 +44,136 @@
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
+
+  /* theme-dependent locals (dark defaults) */
+  --bar-glass: rgba(22,30,23,0.92);
+  --ai-item-bg: rgba(0,0,0,0.18);
+}
+
+/* ============================================================
+   Light theme — mirrors the JigsawNote dark tokens with the
+   scales flipped (50 lightest → 900 darkest). Activated via
+   data-theme="light" on <html>, toggled in Settings.
+   ============================================================ */
+html[data-theme="light"] {
+  color-scheme: light;
+
+  --jn-bg: #f4f8f5;
+  --jn-sidebar: #eaf1ec;
+  --jn-ink: #1e2b22;
+  --jn-line: #c2d3c7;
+
+  --color-primary-50:  #e9f9ef;
+  --color-primary-100: #c4f1d0;
+  --color-primary-200: #98e6ac;
+  --color-primary-300: #6edb8b;
+  --color-primary-400: #38a55f;
+  --color-primary-500: #38a55f;
+  --color-primary-600: #2d7d49;
+  --color-primary-700: #1f5330;
+  --color-primary-800: #123a1f;
+  --color-primary-900: #0e2917;
+  --color-primary: #38a55f;
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary-50:  #fff0e8;
+  --color-secondary-100: #fed6c0;
+  --color-secondary-200: #fdbb93;
+  --color-secondary-300: #fda471;
+  --color-secondary-400: #fc8747;
+  --color-secondary-500: #ed6d2e;
+  --color-secondary-600: #bc5522;
+  --color-secondary-700: #7d3818;
+  --color-secondary-800: #52250f;
+  --color-secondary-900: #3a1a0b;
+  --color-secondary: #ed6d2e;
+  --color-secondary-foreground: #ffffff;
+
+  --color-success-50:  #e8faf0;
+  --color-success-100: #a2e9c1;
+  --color-success-200: #74dfa2;
+  --color-success-300: #45d483;
+  --color-success-400: #17c964;
+  --color-success-500: #12a150;
+  --color-success-600: #0e7930;
+  --color-success-700: #09501f;
+  --color-success-800: #052816;
+  --color-success-900: #052816;
+  --color-success: #12a150;
+  --color-success-foreground: #ffffff;
+
+  --color-warning-50:  #fefce8;
+  --color-warning-100: #fbdba7;
+  --color-warning-200: #f9c97c;
+  --color-warning-300: #f7b750;
+  --color-warning-400: #f5a524;
+  --color-warning-500: #f5a524;
+  --color-warning-600: #c4841d;
+  --color-warning-700: #936316;
+  --color-warning-800: #62420e;
+  --color-warning-900: #312107;
+  --color-warning: #f5a524;
+  --color-warning-foreground: #16110a;
+
+  --color-danger-50:  #fee7ef;
+  --color-danger-100: #faa0bf;
+  --color-danger-200: #f871a0;
+  --color-danger-300: #f54180;
+  --color-danger-400: #f31260;
+  --color-danger-500: #f31260;
+  --color-danger-600: #c20e4d;
+  --color-danger-700: #920b3a;
+  --color-danger-800: #610726;
+  --color-danger-900: #310413;
+  --color-danger: #f31260;
+  --color-danger-foreground: #ffffff;
+
+  --color-default-50:  #f7faf8;
+  --color-default-100: #eef2ef;
+  --color-default-200: #d7e0d9;
+  --color-default-300: #c2d3c7;
+  --color-default-400: #93a896;
+  --color-default-500: #6f8a72;
+  --color-default-600: #566b58;
+  --color-default-700: #3d5242;
+  --color-default-800: #263328;
+  --color-default-900: #131a15;
+  --color-default: #d7e0d9;
+  --color-default-foreground: #1e2b22;
+
+  --color-background: #f4f8f5;
+  --color-foreground: #1e2b22;
+  --color-foreground-500: #6f8a72;
+  --color-focus: #38a55f;
+  --color-overlay: rgba(16,24,18,0.35);
+  --color-divider: rgba(30,43,34,0.10);
+  --color-border: #c2d3c7;
+
+  --color-content1: #ffffff;
+  --color-content1-foreground: #1e2b22;
+  --color-content2: #eef2ef;
+  --color-content2-foreground: #1e2b22;
+  --color-content3: #e2eae4;
+  --color-content3-foreground: #1e2b22;
+  --color-content4: #d7e0d9;
+  --color-content4-foreground: #131a15;
+
+  --surface-app: #f4f8f5;
+  --surface-sidebar: #eaf1ec;
+  --surface-card: #ffffff;
+  --surface-raised: #eef3ef;
+  --text-muted: #5f7265;
+  --text-subtle: #7d9083;
+
+  --color-primary-flat: rgba(56,165,95,0.14);
+  --color-secondary-flat: rgba(237,109,46,0.14);
+  --color-success-flat: rgba(18,161,80,0.14);
+  --color-warning-flat: rgba(245,165,36,0.18);
+  --color-danger-flat: rgba(243,18,96,0.10);
+  --color-default-flat: rgba(30,43,34,0.07);
+
+  --bar-glass: rgba(244,248,245,0.92);
+  --ai-item-bg: rgba(30,43,34,0.06);
 }
 
 html, body { height: 100%; }
@@ -52,7 +191,7 @@ button { font-family: var(--font-sans); }
   height: calc(var(--bar-h) + var(--sat));
   padding: var(--sat) calc(var(--space-2) + var(--sar)) 0 calc(var(--space-2) + var(--sal));
   display: flex; align-items: center; gap: var(--space-1);
-  background: rgba(22,30,23,0.92);
+  background: var(--bar-glass);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--color-divider);
 }
@@ -78,7 +217,7 @@ button { font-family: var(--font-sans); }
 #searchBar {
   position: fixed; top: calc(var(--bar-h) + var(--sat)); left: 0; right: 0; z-index: 39;
   padding: var(--space-2) var(--space-4);
-  background: rgba(22,30,23,0.92); backdrop-filter: blur(12px);
+  background: var(--bar-glass); backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--color-divider);
   display: flex; gap: var(--space-2); align-items: center;
 }
@@ -153,7 +292,7 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
   display: flex; gap: var(--space-2); align-items: flex-start;
   font-size: var(--text-small); color: var(--jn-ink);
   padding: 8px 10px; margin-top: 6px; cursor: pointer;
-  background: rgba(0,0,0,0.18); border-radius: var(--radius-small);
+  background: var(--ai-item-bg); border-radius: var(--radius-small);
 }
 .ai-item .iconify { color: var(--color-secondary); flex: 0 0 auto; margin-top: 2px; }
 #aiBanner {
@@ -652,6 +791,7 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
 <!-- ===== More menu ===== -->
 <div id="moreMenu">
   <div class="m-row" data-act="export"><span class="iconify" data-icon="solar:export-linear"></span><span class="grow">Export folder</span></div>
+  <div class="m-row" data-act="import"><span class="iconify" data-icon="solar:import-linear"></span><span class="grow">Import files</span></div>
   <div class="m-row" data-act="tags"><span class="iconify" data-icon="solar:hashtag-linear"></span><span class="grow">Manage tags</span></div>
   <div class="m-row" data-act="dict"><span class="iconify" data-icon="solar:book-2-linear"></span><span class="grow">Dictionary</span></div>
   <div class="m-row" data-act="bin"><span class="iconify" data-icon="solar:trash-bin-trash-linear"></span><span class="grow">Recycle bin</span></div>
@@ -732,6 +872,11 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
 <!-- ===== Settings modal ===== -->
 <div id="modalSettings" class="modal"><div class="modal-card">
   <h3>Settings</h3>
+  <div class="switch-row">
+    <span class="grow">Light theme<span class="sub">Switch between dark and light appearance</span></span>
+    <span class="sw"><input id="themeToggle" type="checkbox"><i></i></span>
+  </div>
+  <div class="sb-sep" style="margin:var(--space-3) 0"></div>
   <div class="field">
     <label>DeepSeek API key</label>
     <input id="aiKeyInput" type="password" placeholder="sk-…" autocomplete="off">
@@ -755,6 +900,12 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
   <button id="btnExpPdf" class="btn ghost block"><span class="iconify" data-icon="solar:printer-linear"></span>PDF (print)</button>
 </div></div>
 
+<!-- ===== Import progress modal ===== -->
+<div id="modalImport" class="modal"><div class="modal-card">
+  <h3>Importing files…</h3>
+  <p id="importStatus" style="color:var(--text-muted);font-size:var(--text-small);margin:0">Reading files…</p>
+</div></div>
+
 <!-- ===== Recording overlay ===== -->
 <div id="recOverlay" class="hidden">
   <div id="recDot"></div>
@@ -764,6 +915,7 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
 
 <div id="toast"></div>
 <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+<input type="file" id="importInput" accept=".txt,.pdf,text/plain,application/pdf" multiple hidden>
 
 <script>
 /* ================================================================
@@ -784,7 +936,8 @@ const LS = {
   recentFolders: 'rapid_recent_folders_v1',
   aiKey: 'rapid_ai_key_v1',
   aiCache: 'rapid_ai_cache_v1',
-  seeded: 'rapid_seeded_v1'
+  seeded: 'rapid_seeded_v1',
+  theme: 'rapid_theme_v1'
 };
 const BIN_TTL = 15 * 24 * 60 * 60 * 1000; // 15 days
 const $ = (id) => document.getElementById(id);
@@ -1960,6 +2113,7 @@ $('moreMenu').addEventListener('click', (ev) => {
   const act = item.dataset.act;
   unwindNav(1); // close the menu
   if (act === 'export') openExportModal();
+  else if (act === 'import') $('importInput').click();
   else if (act === 'tags') openTagsSheet();
   else if (act === 'dict') openDictModal();
   else if (act === 'bin') openBinModal();
@@ -2253,11 +2407,23 @@ $('btnEmptyBin').addEventListener('click', async () => {
 });
 
 /* ---------------- Settings ---------------- */
+function applyTheme(theme) {
+  if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  else document.documentElement.removeAttribute('data-theme');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f8f5' : '#161e17');
+}
 function openSettingsModal() {
   $('aiKeyInput').value = localStorage.getItem(LS.aiKey) || '';
   $('aiTestResult').textContent = '';
+  $('themeToggle').checked = localStorage.getItem(LS.theme) === 'light';
   openOverlay($('modalSettings'));
 }
+$('themeToggle').addEventListener('change', (e) => {
+  const theme = e.target.checked ? 'light' : 'dark';
+  localStorage.setItem(LS.theme, theme);
+  applyTheme(theme);
+});
 $('btnSaveKey').addEventListener('click', () => {
   const k = $('aiKeyInput').value.trim();
   if (k) localStorage.setItem(LS.aiKey, k);
@@ -2324,6 +2490,138 @@ $('btnExpPdf').addEventListener('click', () => {
   w.document.close();
   setTimeout(() => { w.focus(); w.print(); }, 300);
   unwindNav(1);
+});
+
+/* ---------------- Import (.txt / .pdf → notes) ----------------
+   Imports land in whatever folder is currently open (Home = root),
+   same scoping rule as Export. PDF text is pulled with a lazily
+   loaded pdf.js (only fetched the first time a PDF is imported, so
+   the app shell stays light); .txt is read directly via FileReader.
+   Each file becomes one note, titled from its filename. */
+const IMPORT_MAX_CHARS = 400000; // guards localStorage quota on huge files
+const PDFJS_VER = '3.11.174';
+let pdfjsLoad = null;
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (pdfjsLoad) return pdfjsLoad;
+  pdfjsLoad = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/pdfjs-dist@' + PDFJS_VER + '/build/pdf.min.js';
+    s.onload = () => {
+      try {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@' + PDFJS_VER + '/build/pdf.worker.min.js';
+        resolve(window.pdfjsLib);
+      } catch (err) { reject(err); }
+    };
+    s.onerror = () => reject(new Error('pdfjs script failed to load'));
+    document.head.appendChild(s);
+  }).catch((err) => { pdfjsLoad = null; throw err; });
+  return pdfjsLoad;
+}
+/* Reconstructs readable lines from pdf.js text-run items: a new line starts
+   when the vertical position jumps by more than ~40% of the run's own
+   height, and a space is inserted between runs when there's a horizontal
+   gap wider than the run would otherwise leave — without this, PDFs that
+   position glyphs by coordinates instead of emitting space characters
+   collapse into "wordslikethis". */
+function pdfLineText(items) {
+  const lines = [];
+  let line = '', lastY = null, lastX = null, lastHeight = 0;
+  items.forEach((item) => {
+    if (!item.str) return;
+    const tx = item.transform;
+    const x = tx[4], y = tx[5];
+    const height = Math.hypot(tx[2], tx[3]) || lastHeight || 10;
+    if (lastY !== null && Math.abs(y - lastY) > Math.max(2, height * 0.4)) {
+      if (line.trim()) lines.push(line.trim());
+      line = '';
+      lastX = null;
+    } else if (lastX !== null && (x - lastX) > height * 0.2) {
+      line += ' ';
+    }
+    line += item.str;
+    lastX = x + (item.width || 0);
+    lastY = y;
+    lastHeight = height;
+  });
+  if (line.trim()) lines.push(line.trim());
+  return lines.join('\n');
+}
+async function extractPdfText(arrayBuffer) {
+  const pdfjsLib = await loadPdfJs();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pages = [];
+  let total = 0;
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const t = pdfLineText(content.items);
+    pages.push(t);
+    total += t.length;
+    page.cleanup();
+    if (total > IMPORT_MAX_CHARS) { pages.push('[Truncated — remaining pages skipped]'); break; }
+  }
+  return pages.join('\n\n').trim();
+}
+function readTxtFile(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result || ''));
+    r.onerror = () => reject(r.error || new Error('read failed'));
+    r.readAsText(file);
+  });
+}
+function fileBaseName(name) {
+  return (name || '').replace(/\.[^./\\]+$/, '').trim() || 'Untitled';
+}
+function addImportedEntry(title, content, folderId) {
+  const e = { id: uid(), folderId, catIds: [], ts: Date.now(), title: title.slice(0, 200), content, richHTML: false };
+  entries.unshift(e);
+  return e;
+}
+async function importFiles(files, folderId) {
+  const valid = files.filter((f) => /\.(txt|pdf)$/i.test(f.name) || f.type === 'text/plain' || f.type === 'application/pdf');
+  const skipped = files.length - valid.length;
+  if (!valid.length) { toast('Choose .txt or .pdf files to import.'); return; }
+
+  const statusEl = $('importStatus');
+  statusEl.textContent = 'Starting…';
+  openOverlay($('modalImport'));
+
+  let ok = 0, empty = 0, failed = 0, pdfjsUnavailable = false;
+  for (let i = 0; i < valid.length; i++) {
+    const file = valid[i];
+    const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+    statusEl.textContent = 'File ' + (i + 1) + ' of ' + valid.length + ': ' + file.name;
+    try {
+      let text = isPdf ? await extractPdfText(await file.arrayBuffer()) : await readTxtFile(file);
+      text = text.replace(/\r\n?/g, '\n').replace(/[ \t]+\n/g, '\n').trim();
+      if (text.length > IMPORT_MAX_CHARS) text = text.slice(0, IMPORT_MAX_CHARS) + '\n\n[Truncated — original file was longer]';
+      if (!text && isPdf) { text = '(No extractable text — this PDF may be a scanned image.)'; empty++; }
+      addImportedEntry(fileBaseName(file.name), text, folderId);
+      ok++;
+    } catch (err) {
+      failed++;
+      if (isPdf && !window.pdfjsLib) pdfjsUnavailable = true;
+    }
+  }
+  saveEntries();
+  // the user may have swiped back out of the progress modal already
+  // (import keeps running either way) — only pop its nav frame if it's still open
+  if ($('modalImport').classList.contains('show')) unwindNav(1);
+  render();
+
+  const bits = [];
+  if (ok) bits.push(ok + (ok === 1 ? ' note imported.' : ' notes imported.'));
+  if (empty) bits.push(empty + ' had no extractable text.');
+  if (failed) bits.push(failed + (pdfjsUnavailable ? ' failed — PDF reader needs an internet connection.' : ' failed (corrupt or password-protected?).'));
+  if (skipped) bits.push(skipped + ' skipped (unsupported type).');
+  toast(bits.join(' ') || 'Nothing imported.');
+}
+$('importInput').addEventListener('change', async () => {
+  const files = Array.from($('importInput').files || []);
+  $('importInput').value = '';
+  if (files.length) await importFiles(files, currentFolder);
 });
 
 /* ---------------- AI (DeepSeek, optional BYO key) ---------------- */

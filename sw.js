@@ -5,7 +5,7 @@
 
 /* Bump this version whenever index.html (or any shell asset) changes —
    it triggers a fresh install and drops the old cache on activate. */
-const CACHE = 'rapid-notes-v2';
+const CACHE = 'rapid-notes-v4';
 
 const SHELL = [
   './',
