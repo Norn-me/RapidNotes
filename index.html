@@ -2801,12 +2801,14 @@ function makeDraggableSheet(target, handle) {
   handle.addEventListener('touchstart', (ev) => {
     sy = ev.touches[0].clientY; dy = 0; dragging = true;
     target.style.transition = 'none';
-  }, { passive: true });
+    ev.preventDefault();
+  }, { passive: false });
   handle.addEventListener('touchmove', (ev) => {
     if (!dragging) return;
+    ev.preventDefault();
     dy = Math.max(0, ev.touches[0].clientY - sy);
     target.style.transform = 'translateY(' + dy + 'px)';
-  }, { passive: true });
+  }, { passive: false });
   handle.addEventListener('touchend', () => {
     if (!dragging) return;
     dragging = false;
