@@ -210,6 +210,7 @@ button { font-family: var(--font-sans); }
   transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 .ibtn:active { background: var(--color-default-flat); transform: scale(0.94); }
+.ibtn:disabled { opacity: 0.35; pointer-events: none; }
 .ibtn.accent { color: var(--color-primary); }
 .ibtn.danger { color: var(--color-danger-600); }
 
@@ -741,8 +742,8 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
 <!-- ===== Rapid capture dock ===== -->
 <div id="dock">
   <input id="logInput" type="text" placeholder="Log a thought…" autocomplete="off" enterkeyhint="send">
-  <button id="dockMic" class="dock-btn" aria-label="Voice note"><span class="iconify" data-icon="solar:microphone-2-linear"></span></button>
-  <button id="dockCam" class="dock-btn" aria-label="Photo note"><span class="iconify" data-icon="solar:camera-linear"></span></button>
+  <button id="dockDict" class="dock-btn" aria-label="Shorthand dictionary"><span class="iconify" data-icon="solar:book-2-linear"></span></button>
+  <button id="dockMedia" class="dock-btn" aria-label="Attach media"><span class="iconify" data-icon="solar:paperclip-linear"></span></button>
   <button id="dockNew" class="dock-btn primary" aria-label="New note"><span class="iconify" data-icon="solar:pen-new-square-linear"></span></button>
 </div>
 
@@ -761,6 +762,9 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
   <div id="edMedia"></div>
   <div id="edBody" contenteditable="true" data-ph="Start writing… shorthand expands as you type"></div>
   <div id="edToolbar">
+    <button class="ibtn" id="tbUndo" aria-label="Undo"><span class="iconify" data-icon="solar:undo-left-linear"></span></button>
+    <button class="ibtn" id="tbRedo" aria-label="Redo"><span class="iconify" data-icon="solar:undo-right-linear"></span></button>
+    <span class="sep"></span>
     <button class="ibtn" data-cmd="bold" aria-label="Bold"><span class="iconify" data-icon="solar:text-bold-linear"></span></button>
     <button class="ibtn" data-cmd="italic" aria-label="Italic"><span class="iconify" data-icon="solar:text-italic-linear"></span></button>
     <button class="ibtn" data-cmd="underline" aria-label="Underline"><span class="iconify" data-icon="solar:text-underline-linear"></span></button>
@@ -768,8 +772,7 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
     <span class="sep"></span>
     <button class="ibtn" id="tbCheck" aria-label="Checklist"><span class="iconify" data-icon="solar:checklist-minimalistic-linear"></span></button>
     <span class="sep"></span>
-    <button class="ibtn" id="tbPhoto" aria-label="Attach photo"><span class="iconify" data-icon="solar:camera-linear"></span></button>
-    <button class="ibtn" id="tbMic" aria-label="Record audio"><span class="iconify" data-icon="solar:microphone-2-linear"></span></button>
+    <button class="ibtn" id="tbMedia" aria-label="Attach media"><span class="iconify" data-icon="solar:paperclip-linear"></span></button>
   </div>
 </section>
 
@@ -820,6 +823,14 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
     <button id="btnAddTag" class="btn primary">Add</button>
   </div>
   <p style="color:var(--text-subtle);font-size:var(--text-tiny);margin:var(--space-2) 0 0">Start a quick log with a prefix (like <b>!</b> or <b>?</b>) to tag it automatically.</p>
+</div>
+
+<!-- ===== Attach media chooser ===== -->
+<div id="sheetMedia" class="sheet">
+  <div class="sheet-grab"></div>
+  <h3>Attach media</h3>
+  <div class="m-row" data-media="voice"><span class="iconify lead" data-icon="solar:microphone-2-linear"></span><span class="grow">Record voice<span class="sub">Capture an audio note with the microphone</span></span></div>
+  <div class="m-row" data-media="photo"><span class="iconify lead" data-icon="solar:camera-linear"></span><span class="grow">Attach photo<span class="sub">Take or pick a picture</span></span></div>
 </div>
 
 <!-- ===== Folder modal ===== -->
@@ -1683,6 +1694,7 @@ function openEditor(id) {
   renderEdPin();
   renderEdTags();
   renderEdMedia();
+  histReset();
   $('editorView').classList.remove('hidden');
   pushNav(() => {
     flushEditorSave();
@@ -1696,6 +1708,7 @@ $('edBack').addEventListener('click', navBack);
 function scheduleEditorSave() {
   clearTimeout(edSaveTimer);
   edSaveTimer = setTimeout(flushEditorSave, 400);
+  histSchedule();
 }
 function flushEditorSave() {
   clearTimeout(edSaveTimer);
@@ -1751,6 +1764,61 @@ function renderEdTags() {
   add.addEventListener('click', () => { recatTarget = editingId; openRecatSheet(true); });
   box.appendChild(add);
 }
+
+/* ----- undo / redo -----
+   Snapshot-based history (title + body HTML) instead of the native
+   contenteditable undo stack, which breaks on the programmatic DOM
+   edits done by shorthand expansion, checklists and AI inserts. */
+const HIST_MAX = 100;
+let edHist = [], edHistIdx = -1, edHistTimer = null, edRestoring = false;
+function histSnap() { return { t: edTitle.value, h: edBody.innerHTML }; }
+function histPush() {
+  clearTimeout(edHistTimer); edHistTimer = null;
+  const s = histSnap();
+  const top = edHist[edHistIdx];
+  if (top && top.t === s.t && top.h === s.h) return;
+  edHist = edHist.slice(0, edHistIdx + 1); // new edit clears the redo tail
+  edHist.push(s);
+  if (edHist.length > HIST_MAX) edHist.shift();
+  edHistIdx = edHist.length - 1;
+  updateHistBtns();
+}
+function histSchedule() {
+  if (edRestoring) return;
+  clearTimeout(edHistTimer);
+  edHistTimer = setTimeout(histPush, 350);
+}
+function histReset() {
+  clearTimeout(edHistTimer); edHistTimer = null;
+  edHist = []; edHistIdx = -1;
+  histPush();
+}
+function histRestore() {
+  const s = edHist[edHistIdx];
+  edRestoring = true;
+  edTitle.value = s.t;
+  edBody.innerHTML = s.h;
+  edRestoring = false;
+  flushEditorSave();
+  updateHistBtns();
+}
+function updateHistBtns() {
+  $('tbUndo').disabled = edHistIdx <= 0;
+  $('tbRedo').disabled = edHistIdx >= edHist.length - 1;
+}
+$('tbUndo').addEventListener('mousedown', (ev) => ev.preventDefault());
+$('tbRedo').addEventListener('mousedown', (ev) => ev.preventDefault());
+$('tbUndo').addEventListener('click', () => {
+  histPush(); // capture in-flight typing so it's the first thing undone
+  if (edHistIdx <= 0) return;
+  edHistIdx--;
+  histRestore();
+});
+$('tbRedo').addEventListener('click', () => {
+  if (edHistIdx >= edHist.length - 1) return;
+  edHistIdx++;
+  histRestore();
+});
 
 /* ----- toolbar formatting ----- */
 document.querySelectorAll('#edToolbar [data-cmd]').forEach((b) => {
@@ -1932,8 +2000,23 @@ edBody.addEventListener('keydown', (ev) => {
 
 /* ---------------- Media: photos & voice ---------------- */
 let photoTarget = null; // 'editor' | 'dock'
-$('tbPhoto').addEventListener('click', () => { photoTarget = 'editor'; $('photoInput').click(); });
-$('dockCam').addEventListener('click', () => { photoTarget = 'dock'; $('photoInput').click(); });
+let mediaTarget = 'dock'; // where the chooser sheet attaches to
+function openMediaSheet(target) {
+  if (rec) { rec.stop(); return; } // tap again while recording = stop
+  mediaTarget = target;
+  openOverlay($('sheetMedia'));
+}
+$('dockMedia').addEventListener('click', () => openMediaSheet('dock'));
+$('tbMedia').addEventListener('click', () => openMediaSheet('editor'));
+$('sheetMedia').addEventListener('click', (ev) => {
+  const item = ev.target.closest('[data-media]');
+  if (!item) return;
+  const kind = item.dataset.media;
+  const target = mediaTarget;
+  unwindNav(1); // close the chooser
+  if (kind === 'photo') { photoTarget = target; $('photoInput').click(); }
+  else toggleRec(target);
+});
 
 $('photoInput').addEventListener('change', async () => {
   const file = $('photoInput').files[0];
@@ -2008,11 +2091,9 @@ async function toggleRec(target, btn) {
   updateRecUI();
 }
 function updateRecUI() {
-  $('dockMic').classList.toggle('recording', !!rec && recTarget === 'dock');
-  $('tbMic').classList.toggle('danger', !!rec && recTarget === 'editor');
+  $('dockMedia').classList.toggle('recording', !!rec && recTarget === 'dock');
+  $('tbMedia').classList.toggle('danger', !!rec && recTarget === 'editor');
 }
-$('dockMic').addEventListener('click', () => toggleRec('dock'));
-$('tbMic').addEventListener('click', () => toggleRec('editor'));
 $('recStop').addEventListener('click', () => { if (rec) rec.stop(); });
 
 /* attachments panel in the editor, hydrated from IndexedDB blobs */
@@ -2077,6 +2158,7 @@ function submitLog() {
   toast('Note saved.');
 }
 $('logInput').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') submitLog(); });
+$('dockDict').addEventListener('click', openDictModal);
 $('dockNew').addEventListener('click', () => {
   const raw = $('logInput').value.trim();
   if (raw) { submitLog(); return; }
