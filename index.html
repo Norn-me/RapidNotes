@@ -2910,6 +2910,30 @@ document.querySelectorAll('.modal .modal-card').forEach((c) => {
   makeDraggableSheet(c, grab);
 });
 
+/* ---------------- Disable browser pull-to-refresh everywhere ----------------
+   overscroll-behavior-y:none on body isn't honored by every mobile browser
+   (notably Firefox for Android), so block the native refresh gesture by hand:
+   only preventDefault when the drag is downward AND nothing under the touch
+   (nor the page itself) has room left to scroll up into. */
+(function () {
+  let startY = 0;
+  document.addEventListener('touchstart', (ev) => {
+    if (ev.touches.length !== 1) return;
+    startY = ev.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchmove', (ev) => {
+    if (ev.touches.length !== 1) return;
+    if (ev.touches[0].clientY - startY <= 0) return;
+    let el = ev.target;
+    while (el && el !== document.body) {
+      if (el.scrollTop > 0) return;
+      el = el.parentElement;
+    }
+    if ((document.scrollingElement || document.documentElement).scrollTop > 0) return;
+    ev.preventDefault();
+  }, { passive: false });
+})();
+
 /* ---------------- Keyboard-aware dock (visualViewport) ---------------- */
 function vvFix() {
   if (!window.visualViewport) return;
