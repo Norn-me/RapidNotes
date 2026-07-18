@@ -176,6 +176,8 @@ html[data-theme="light"] {
   --ai-item-bg: rgba(30,43,34,0.06);
 }
 
+/* overscroll-behavior must be on the root element — Chrome 93+ ignores it on body */
+html { overscroll-behavior-y: none; }
 html, body { height: 100%; }
 body {
   overscroll-behavior-y: none;
