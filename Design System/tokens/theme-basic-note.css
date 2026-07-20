@@ -1,0 +1,162 @@
+/* JigsawNote — "Basic Note" theme
+   A light, mellow-white counterpart to the default dark JigsawNote theme.
+   Background and ink are matched to warm, paper-like reference photography;
+   the accent scales are de-saturated versions of a soft multi-hue pastel dial
+   (sage green, oat yellow, dusty sky, dusty rose) from the same reference set.
+
+   Same custom-property names as tokens/colors.css, so every component reads
+   this theme with zero code changes. Toggle by setting data-theme="basic-note"
+   on <html> (or any ancestor) — see SKILL.md FAQ.
+*/
+
+[data-theme="basic-note"] {
+  color-scheme: light;
+
+  /* ---- Brand primitives ---- */
+  --bn-bg: #f5efd2;     /* mellow-white page background */
+  --bn-ink: #211d16;    /* primary text — warm near-black */
+  --bn-sage: #91a66e;   /* primary accent (de-saturated green) */
+  --bn-oat: #c8b27e;    /* secondary accent (de-saturated yellow) */
+  --bn-sky: #bcc8dc;    /* tag accent — dusty blue */
+  --bn-rose: #e1c1d1;   /* tag accent — dusty pink */
+  --bn-line: #ddd0b0;   /* borders */
+
+  /* ---- Primary — de-saturated sage green (light scale: 50 lightest → 900 darkest) ---- */
+  --color-primary-50:  #f5f7f2;
+  --color-primary-100: #eaeee3;
+  --color-primary-200: #d6dec9;
+  --color-primary-300: #bfcbaa;
+  --color-primary-400: #a7b78a;
+  --color-primary-500: #91a66e;
+  --color-primary-600: #7a8e57;
+  --color-primary-700: #647548;
+  --color-primary-800: #4f5c38;
+  --color-primary-900: #394229;
+  --color-primary: #91a66e;
+  --color-primary-foreground: #211d16;
+
+  /* ---- Secondary — de-saturated oat yellow ---- */
+  --color-secondary-50:  #faf9f4;
+  --color-secondary-100: #f4f0e6;
+  --color-secondary-200: #eae1cd;
+  --color-secondary-300: #ddd0b0;
+  --color-secondary-400: #d3c197;
+  --color-secondary-500: #c8b27e;
+  --color-secondary-600: #b99c5b;
+  --color-secondary-700: #9d8243;
+  --color-secondary-800: #796534;
+  --color-secondary-900: #564725;
+  --color-secondary: #c8b27e;
+  --color-secondary-foreground: #211d16;
+
+  /* ---- Success — muted emerald (kept distinct from primary sage) ---- */
+  --color-success-50:  #f2f7f5;
+  --color-success-100: #e2eee8;
+  --color-success-200: #c8dfd4;
+  --color-success-300: #a8ccbb;
+  --color-success-400: #88b9a2;
+  --color-success-500: #6ba88c;
+  --color-success-600: #559175;
+  --color-success-700: #467760;
+  --color-success-800: #375d4b;
+  --color-success-900: #284336;
+  --color-success: #6ba88c;
+  --color-success-foreground: #211d16;
+
+  /* ---- Warning — muted amber ---- */
+  --color-warning-50:  #fbf8f4;
+  --color-warning-100: #f5eee6;
+  --color-warning-200: #eaddcc;
+  --color-warning-300: #decaaf;
+  --color-warning-400: #d4b996;
+  --color-warning-500: #caa87d;
+  --color-warning-600: #bb9058;
+  --color-warning-700: #9f7641;
+  --color-warning-800: #7b5c32;
+  --color-warning-900: #574123;
+  --color-warning: #caa87d;
+  --color-warning-foreground: #211d16;
+
+  /* ---- Danger — muted clay rose ---- */
+  --color-danger-50:  #faf5f5;
+  --color-danger-100: #f2e5e3;
+  --color-danger-200: #e7cfcb;
+  --color-danger-300: #d8b2ac;
+  --color-danger-400: #c9958d;
+  --color-danger-500: #ba786d;
+  --color-danger-600: #aa5c50;
+  --color-danger-700: #8b4b41;
+  --color-danger-800: #6c3a33;
+  --color-danger-900: #502b26;
+  --color-danger: #ba786d;
+  --color-danger-foreground: #211d16;
+
+  /* ---- Default — neutral warm greige ---- */
+  --color-default-50:  #f6f5f4;
+  --color-default-100: #eae9e6;
+  --color-default-200: #d8d6cf;
+  --color-default-300: #c1beb3;
+  --color-default-400: #aaa597;
+  --color-default-500: #95907e;
+  --color-default-600: #7e7867;
+  --color-default-700: #686355;
+  --color-default-800: #514e43;
+  --color-default-900: #3b3830;
+  --color-default: #d8d6cf;
+  --color-default-foreground: #211d16;
+
+  /* ---- Layout ---- */
+  --color-background: #f5efd2;
+  --color-foreground: #211d16;
+  --color-foreground-500: #7e7867;
+  --color-focus: #7a8e57;
+  --color-overlay: rgba(33,29,22,0.42);
+  --color-divider: rgba(33,29,22,0.10);
+  --color-border: #ddd0b0;
+
+  /* ---- Content surfaces (elevation) ----
+     Elevation runs warmer rather than lighter: raising a surface moves it down
+     into the oat/cream family instead of up toward white, so no surface in this
+     theme ever approaches #ffffff. ---- */
+  --color-content1: #efe8c6;
+  --color-content1-foreground: #211d16;
+  --color-content2: #e7dfb4;
+  --color-content2-foreground: #211d16;
+  --color-content3: #ddd2a0;
+  --color-content3-foreground: #211d16;
+  --color-content4: #cdbf8a;
+  --color-content4-foreground: #211d16;
+
+  /* ---- Semantic app surfaces ---- */
+  --surface-app: #f5efd2;
+  --surface-sidebar: #ede6cc;
+  --surface-card: #efe8c6;
+  --surface-raised: #e9e0b8;
+  --text-muted: #7e7867;
+  --text-subtle: #aaa597;
+
+  /* ---- Flat / soft tints (variant="flat") ---- */
+  --color-primary-flat: rgba(145,166,110,0.18);
+  --color-secondary-flat: rgba(200,178,126,0.20);
+  --color-success-flat: rgba(107,168,140,0.18);
+  --color-warning-flat: rgba(202,168,125,0.20);
+  --color-danger-flat: rgba(186,120,109,0.18);
+  --color-default-flat: rgba(33,29,22,0.07);
+
+  /* ---- Note tag palette (bonus) — for tags/folders/labels, echoing the
+     multi-hue pastel dial in the reference photography ---- */
+  --tag-sage: #7a8e57;
+  --tag-sage-bg: #d6dec9;
+  --tag-oat: #b99c5b;
+  --tag-oat-bg: #eae1cd;
+  --tag-sky: #7890ba;
+  --tag-sky-bg: #bcc8dc;
+  --tag-rose: #bf7d9e;
+  --tag-rose-bg: #e1c1d1;
+
+  /* ---- Elevation (light, warm-ink cast) ---- */
+  --shadow-small: 0px 1px 2px rgba(33,29,22,0.08), 0px 2px 6px rgba(33,29,22,0.05);
+  --shadow-medium: 0px 4px 12px rgba(33,29,22,0.10), 0px 2px 4px rgba(33,29,22,0.06);
+  --shadow-large: 0px 12px 28px rgba(33,29,22,0.14), 0px 4px 10px rgba(33,29,22,0.08);
+  --shadow-primary: 0px 6px 18px rgba(145,166,110,0.35);
+}

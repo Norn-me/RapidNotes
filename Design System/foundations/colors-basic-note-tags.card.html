@@ -1,0 +1,19 @@
+<!-- @dsCard group="Themes" viewport="700x170" name="Basic Note — Note tags" subtitle="De-saturated label colors, referenced from a multi-hue pastel dial" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="basic-note"><head><meta charset="utf-8" /><link rel="stylesheet" href="../styles.css" />
+<style>
+  body { padding: 20px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .tag { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: var(--radius-full); font-family: var(--font-sans); font-size: 13px; font-weight: 500; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .note { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+</style></head>
+<body>
+<div class="row">
+  <span class="tag" style="background:var(--tag-sage-bg);color:var(--tag-sage)"><span class="dot" style="background:var(--tag-sage)"></span>Health</span>
+  <span class="tag" style="background:var(--tag-oat-bg);color:var(--tag-oat)"><span class="dot" style="background:var(--tag-oat)"></span>Ideas</span>
+  <span class="tag" style="background:var(--tag-sky-bg);color:var(--tag-sky)"><span class="dot" style="background:var(--tag-sky)"></span>Work</span>
+  <span class="tag" style="background:var(--tag-rose-bg);color:var(--tag-rose)"><span class="dot" style="background:var(--tag-rose)"></span>Personal</span>
+</div>
+<div class="note">--tag-sage / --tag-oat / --tag-sky / --tag-rose (+ -bg variants) — for note labels, folders, and category chips</div>
+</body></html>

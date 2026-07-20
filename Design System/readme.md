@@ -43,6 +43,20 @@ JigsawNote uses a **dark-first, green-accented palette** optimized for focus and
 
 The color system avoids bright pastels and relies on high contrast for accessibility in dark mode.
 
+### Themes
+
+JigsawNote ships **two color themes**, both built on the same semantic token names so components render either with zero code changes:
+
+- **JigsawNote (default)** — the dark, green-accented mode described above. Active whenever no theme attribute is set.
+- **Basic Note** — a light, mellow-white mode for a softer, paper-like note-taking feel. Toggle with `data-theme="basic-note"` on `<html>` (or any wrapper element).
+  - **Background**: `#f5efd2` — mellow white/cream, warm ink text `#211d16`
+  - **Primary**: `#91a66e` — de-saturated sage green (keeps the JigsawNote green identity, muted for a light surface)
+  - **Secondary**: `#c8b27e` — de-saturated oat yellow
+  - **Success / Warning / Danger**: muted emerald `#6ba88c` / muted amber `#caa87d` / clay rose `#ba786d`
+  - **Bonus note-tag palette**: `--tag-sage` / `--tag-oat` / `--tag-sky` / `--tag-rose` (+ `-bg` tints) for note labels, folders, and category chips — a de-saturated take on a multi-hue pastel reference
+
+  All accents are intentionally muted (lower chroma than a typical pastel UI) to stay calm on the mellow-white background. See `tokens/theme-basic-note.css` for the full scale, and the **Themes** group in the Design System tab for swatches.
+
 ### Typography
 
 The system uses **two primary typeface families** to establish hierarchy:
@@ -202,6 +216,7 @@ All design decisions are expressed as **CSS custom properties** in `tokens/`:
 - `tokens/spacing.css` — spacing scale and semantic names (xs–2xl)
 - `tokens/fonts.css` — `@font-face` declarations for Inter and Fira Code
 - `tokens/base.css` — global resets, root color scheme
+- `tokens/theme-basic-note.css` — the "Basic Note" light theme, overriding the same token names under `[data-theme="basic-note"]`
 
 These are imported into `styles.css`, the single entry point for consumers.
 
@@ -242,7 +257,6 @@ The Design System tab in Figma/Claude contains:
 
 ## Future Work
 
-- Light theme variant (tokens/light.css with overrides)
 - Additional component variants (e.g., Button with icon-only variant)
 - Animation guidelines and micro-interaction patterns
 - Accessibility audit and WCAG 2.1 AA compliance verification

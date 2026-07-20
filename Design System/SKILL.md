@@ -113,7 +113,7 @@ A: Yes. Override CSS custom properties in a custom stylesheet or directly in `to
 A: The system uses Iconify CDN for Vuesax and Solar icons. The Icon wrapper component loads them dynamically. No local icon files to manage.
 
 **Q: What about a light theme?**
-A: Not included in the current version. To add one, create `tokens/light.css` with overrides for `--color-bg`, `--color-text`, etc., and toggle it via a `data-theme="light"` attribute on `<html>`.
+A: Included — "Basic Note", a mellow-white/warm-ink theme in `tokens/theme-basic-note.css`. Toggle it via a `data-theme="basic-note"` attribute on `<html>`.
 
 **Q: Is there a Figma file?**
 A: The design system was built from the HeroUI Figma kit, customized for JigsawNote's dark green theme. The source Figma file is referenced in `readme.md` but not included here; the components have been fully authored in code.

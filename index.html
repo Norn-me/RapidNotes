@@ -15,9 +15,11 @@
 <script>
 /* Apply saved theme before first paint to avoid a dark flash. */
 try {
-  if (localStorage.getItem('rapid_theme_v1') === 'light') {
-    document.documentElement.setAttribute('data-theme', 'light');
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f4f8f5');
+  var t = localStorage.getItem('rapid_theme_v1');
+  var barColors = { light: '#f4f8f5', 'basic-note': '#f5efd2' };
+  if (barColors[t]) {
+    document.documentElement.setAttribute('data-theme', t);
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', barColors[t]);
   }
 } catch (e) {}
 </script>
@@ -175,6 +177,156 @@ html[data-theme="light"] {
   --bar-glass: rgba(244,248,245,0.92);
   --ai-item-bg: rgba(30,43,34,0.06);
 }
+
+/* ============================================================
+   Basic Note theme — the JigsawNote design system's canonical
+   light theme (mellow-white / warm-ink, de-saturated sage-green
+   accent). Synced verbatim from Design System/tokens/theme-basic-note.css
+   plus this app's own local aliases. Activated via
+   data-theme="basic-note" on <html>, toggled in Settings.
+   ============================================================ */
+html[data-theme="basic-note"] {
+  color-scheme: light;
+
+  --jn-bg: #f5efd2;
+  --jn-sidebar: #ede6cc;
+  --jn-ink: #211d16;
+  --jn-line: #ddd0b0;
+
+  --color-primary-50:  #f5f7f2;
+  --color-primary-100: #eaeee3;
+  --color-primary-200: #d6dec9;
+  --color-primary-300: #bfcbaa;
+  --color-primary-400: #a7b78a;
+  --color-primary-500: #91a66e;
+  --color-primary-600: #7a8e57;
+  --color-primary-700: #647548;
+  --color-primary-800: #4f5c38;
+  --color-primary-900: #394229;
+  --color-primary: #91a66e;
+  --color-primary-foreground: #211d16;
+
+  --color-secondary-50:  #faf9f4;
+  --color-secondary-100: #f4f0e6;
+  --color-secondary-200: #eae1cd;
+  --color-secondary-300: #ddd0b0;
+  --color-secondary-400: #d3c197;
+  --color-secondary-500: #c8b27e;
+  --color-secondary-600: #b99c5b;
+  --color-secondary-700: #9d8243;
+  --color-secondary-800: #796534;
+  --color-secondary-900: #564725;
+  --color-secondary: #c8b27e;
+  --color-secondary-foreground: #211d16;
+
+  --color-success-50:  #f2f7f5;
+  --color-success-100: #e2eee8;
+  --color-success-200: #c8dfd4;
+  --color-success-300: #a8ccbb;
+  --color-success-400: #88b9a2;
+  --color-success-500: #6ba88c;
+  --color-success-600: #559175;
+  --color-success-700: #467760;
+  --color-success-800: #375d4b;
+  --color-success-900: #284336;
+  --color-success: #6ba88c;
+  --color-success-foreground: #211d16;
+
+  --color-warning-50:  #fbf8f4;
+  --color-warning-100: #f5eee6;
+  --color-warning-200: #eaddcc;
+  --color-warning-300: #decaaf;
+  --color-warning-400: #d4b996;
+  --color-warning-500: #caa87d;
+  --color-warning-600: #bb9058;
+  --color-warning-700: #9f7641;
+  --color-warning-800: #7b5c32;
+  --color-warning-900: #574123;
+  --color-warning: #caa87d;
+  --color-warning-foreground: #211d16;
+
+  --color-danger-50:  #faf5f5;
+  --color-danger-100: #f2e5e3;
+  --color-danger-200: #e7cfcb;
+  --color-danger-300: #d8b2ac;
+  --color-danger-400: #c9958d;
+  --color-danger-500: #ba786d;
+  --color-danger-600: #aa5c50;
+  --color-danger-700: #8b4b41;
+  --color-danger-800: #6c3a33;
+  --color-danger-900: #502b26;
+  --color-danger: #ba786d;
+  --color-danger-foreground: #211d16;
+
+  --color-default-50:  #f6f5f4;
+  --color-default-100: #eae9e6;
+  --color-default-200: #d8d6cf;
+  --color-default-300: #c1beb3;
+  --color-default-400: #aaa597;
+  --color-default-500: #95907e;
+  --color-default-600: #7e7867;
+  --color-default-700: #686355;
+  --color-default-800: #514e43;
+  --color-default-900: #3b3830;
+  --color-default: #d8d6cf;
+  --color-default-foreground: #211d16;
+
+  --color-background: #f5efd2;
+  --color-foreground: #211d16;
+  --color-foreground-500: #7e7867;
+  --color-focus: #7a8e57;
+  --color-overlay: rgba(33,29,22,0.42);
+  --color-divider: rgba(33,29,22,0.10);
+  --color-border: #ddd0b0;
+
+  /* Elevation runs warmer (down into cream), never lighter toward white —
+     content1 is the mellow card tone, content4 the deepest oat. */
+  --color-content1: #efe8c6;
+  --color-content1-foreground: #211d16;
+  --color-content2: #e7dfb4;
+  --color-content2-foreground: #211d16;
+  --color-content3: #ddd2a0;
+  --color-content3-foreground: #211d16;
+  --color-content4: #cdbf8a;
+  --color-content4-foreground: #211d16;
+
+  --surface-app: #f5efd2;
+  --surface-sidebar: #ede6cc;
+  --surface-card: #efe8c6;
+  --surface-raised: #e9e0b8;
+  --text-muted: #7e7867;
+  --text-subtle: #aaa597;
+
+  --color-primary-flat: rgba(145,166,110,0.18);
+  --color-secondary-flat: rgba(200,178,126,0.20);
+  --color-success-flat: rgba(107,168,140,0.18);
+  --color-warning-flat: rgba(202,168,125,0.20);
+  --color-danger-flat: rgba(186,120,109,0.18);
+  --color-default-flat: rgba(33,29,22,0.07);
+
+  --tag-sage: #7a8e57;
+  --tag-sage-bg: #d6dec9;
+  --tag-oat: #b99c5b;
+  --tag-oat-bg: #eae1cd;
+  --tag-sky: #7890ba;
+  --tag-sky-bg: #bcc8dc;
+  --tag-rose: #bf7d9e;
+  --tag-rose-bg: #e1c1d1;
+
+  --bar-glass: rgba(245,239,210,0.92);
+  --ai-item-bg: rgba(33,29,22,0.06);
+}
+
+/* Basic Note theme has no pure white anywhere in the UI — every spot that is
+   hardcoded #fff for the dark/light themes (switch knobs, the recording button
+   and overlay, the bin badge, the media remove button) swaps to the theme's own
+   mellow-white instead. */
+html[data-theme="basic-note"] .sw i::after { background: var(--jn-bg); }
+html[data-theme="basic-note"] #recStop { background: var(--jn-bg) !important; color: var(--jn-ink) !important; }
+html[data-theme="basic-note"] #recOverlay { color: var(--jn-bg); }
+html[data-theme="basic-note"] .badge-count { color: var(--jn-bg); }
+html[data-theme="basic-note"] .dock-btn.recording { color: var(--jn-bg); }
+html[data-theme="basic-note"] .media-card .rm { color: var(--jn-bg); }
 
 /* overscroll-behavior must be on the root element — Chrome 93+ ignores it on body */
 html { overscroll-behavior-y: none; }
@@ -611,6 +763,25 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
 .sw input:checked + i { background: var(--color-primary); }
 .sw input:checked + i::after { transform: translateX(19px); }
 
+/* ---------- Theme swatch switcher ---------- */
+.theme-swatches { display: flex; gap: var(--space-3); padding: var(--space-1) 0 var(--space-2); }
+.theme-swatch {
+  appearance: none; border: 0; background: transparent; cursor: pointer;
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: var(--space-2) 4px; border-radius: var(--radius-medium);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.theme-swatch:active { transform: scale(0.97); }
+.theme-swatch-dot {
+  width: 40px; height: 40px; border-radius: var(--radius-full);
+  border: 2px solid var(--color-divider); box-shadow: inset 0 0 0 3px var(--theme-swatch-accent, transparent);
+  transition: box-shadow var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.theme-swatch-label { font-size: var(--text-tiny); color: var(--text-muted); font-weight: var(--fw-medium); }
+.theme-swatch.active { background: var(--color-primary-flat); }
+.theme-swatch.active .theme-swatch-dot { border-color: var(--color-primary); }
+.theme-swatch.active .theme-swatch-label { color: var(--color-foreground); font-weight: var(--fw-semibold); }
+
 /* list rows inside sheets/modals */
 .m-row {
   display: flex; align-items: center; gap: var(--space-3);
@@ -885,9 +1056,22 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
 <!-- ===== Settings modal ===== -->
 <div id="modalSettings" class="modal"><div class="modal-card">
   <h3>Settings</h3>
-  <div class="switch-row">
-    <span class="grow">Light theme<span class="sub">Switch between dark and light appearance</span></span>
-    <span class="sw"><input id="themeToggle" type="checkbox"><i></i></span>
+  <div class="field" style="margin-bottom:0">
+    <label>Theme</label>
+    <div class="theme-swatches" id="themeSwatches">
+      <button type="button" class="theme-swatch" data-theme-value="dark" aria-label="Dark theme">
+        <span class="theme-swatch-dot" style="background:#161e17;--theme-swatch-accent:#4cd36f"></span>
+        <span class="theme-swatch-label">Dark</span>
+      </button>
+      <button type="button" class="theme-swatch" data-theme-value="light" aria-label="Light theme">
+        <span class="theme-swatch-dot" style="background:#f4f8f5;--theme-swatch-accent:#38a55f"></span>
+        <span class="theme-swatch-label">Light</span>
+      </button>
+      <button type="button" class="theme-swatch" data-theme-value="basic-note" aria-label="Basic Note theme">
+        <span class="theme-swatch-dot" style="background:#f5efd2;--theme-swatch-accent:#91a66e"></span>
+        <span class="theme-swatch-label">Basic Note</span>
+      </button>
+    </div>
   </div>
   <div class="sb-sep" style="margin:var(--space-3) 0"></div>
   <div class="field">
@@ -2491,22 +2675,36 @@ $('btnEmptyBin').addEventListener('click', async () => {
 });
 
 /* ---------------- Settings ---------------- */
+const THEME_BAR_COLOR = { dark: '#161e17', light: '#f4f8f5', 'basic-note': '#f5efd2' };
 function applyTheme(theme) {
-  if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  if (theme === 'light' || theme === 'basic-note') document.documentElement.setAttribute('data-theme', theme);
   else document.documentElement.removeAttribute('data-theme');
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f8f5' : '#161e17');
+  if (meta) meta.setAttribute('content', THEME_BAR_COLOR[theme] || THEME_BAR_COLOR.dark);
+}
+function currentTheme() {
+  const t = localStorage.getItem(LS.theme);
+  return THEME_BAR_COLOR[t] ? t : 'dark';
+}
+function renderThemeSwatches() {
+  const active = currentTheme();
+  $('themeSwatches').querySelectorAll('.theme-swatch').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.themeValue === active);
+  });
 }
 function openSettingsModal() {
   $('aiKeyInput').value = localStorage.getItem(LS.aiKey) || '';
   $('aiTestResult').textContent = '';
-  $('themeToggle').checked = localStorage.getItem(LS.theme) === 'light';
+  renderThemeSwatches();
   openOverlay($('modalSettings'));
 }
-$('themeToggle').addEventListener('change', (e) => {
-  const theme = e.target.checked ? 'light' : 'dark';
+$('themeSwatches').addEventListener('click', (e) => {
+  const btn = e.target.closest('.theme-swatch');
+  if (!btn) return;
+  const theme = btn.dataset.themeValue;
   localStorage.setItem(LS.theme, theme);
   applyTheme(theme);
+  renderThemeSwatches();
 });
 $('btnSaveKey').addEventListener('click', () => {
   const k = $('aiKeyInput').value.trim();
