@@ -842,6 +842,103 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
 .spin { display: inline-block; animation: rot 0.9s linear infinite; }
 @keyframes rot { to { transform: rotate(360deg); } }
 
+/* ============================================================
+   First-run onboarding: demo capture, transformation ghost,
+   "what just happened" card, category pack picker.
+   ============================================================ */
+
+/* While the demo is armed, send is the only live affordance. */
+body.onboarding-demo #dockDict,
+body.onboarding-demo #dockMedia,
+body.onboarding-demo #btnSearch,
+body.onboarding-demo #btnMore,
+body.onboarding-demo #btnMenu {
+  opacity: 0.25; pointer-events: none;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+body.onboarding-demo #dockNew { animation: demoPulse 1.6s ease-in-out infinite; }
+@keyframes demoPulse {
+  0%, 100% { box-shadow: var(--shadow-primary); }
+  50% { box-shadow: var(--shadow-primary), 0 0 0 9px var(--color-primary-flat); }
+}
+
+/* Ghost sits exactly over #logInput and plays the transformation before
+   the note commits. Mirrors the input's own box so the swap is invisible. */
+#demoGhost {
+  position: fixed; z-index: 46; pointer-events: none;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.28em;
+  background: var(--surface-card); color: var(--color-foreground);
+  border: 1px solid var(--color-primary-400); border-radius: var(--radius-bubble);
+  box-shadow: var(--shadow-small);
+  padding: 13px 18px; font-size: 16px; font-family: var(--font-sans);
+  overflow: hidden; white-space: nowrap;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+#demoGhost.fade { opacity: 0; }
+#demoGhost .tk { display: inline-block; transition: color var(--dur-base) var(--ease-out); }
+#demoGhost .tk.swap { animation: demoSwap var(--dur-slow) var(--ease-out); color: var(--color-primary); }
+@keyframes demoSwap {
+  0% { transform: translateY(-6px) scale(0.86); opacity: 0; }
+  60% { transform: translateY(0) scale(1.06); opacity: 1; }
+  100% { transform: none; }
+}
+#demoGhost .tk.peel { animation: demoPeel var(--dur-slow) var(--ease-out) forwards; }
+@keyframes demoPeel {
+  100% { transform: translateY(-14px) rotate(-18deg); opacity: 0; }
+}
+#demoGhost .tag-pill { opacity: 0; transform: scale(0.7); transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out); }
+#demoGhost .tag-pill.in { opacity: 1; transform: none; }
+
+/* Inline "what just happened" card — list content, never an overlay. */
+.demo-card {
+  background: var(--color-primary-flat);
+  border: 1px solid var(--color-primary-200);
+  border-radius: var(--radius-large);
+  padding: var(--space-3) var(--space-4);
+  margin: 0 0 var(--space-2); cursor: pointer;
+  animation: demoCardIn var(--dur-slow) var(--ease-out);
+}
+@keyframes demoCardIn { from { opacity: 0; transform: translateY(-8px); } }
+.demo-card .dc-head {
+  display: flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-tiny); font-weight: var(--fw-semibold);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-primary-600);
+  margin-bottom: var(--space-2);
+}
+.demo-card .dc-head .grow { flex: 1; }
+.demo-card .dc-close {
+  appearance: none; border: 0; background: transparent; cursor: pointer;
+  color: var(--color-primary-600); width: 28px; height: 28px; margin: -6px -8px -6px 0;
+  border-radius: var(--radius-full); font-size: 15px;
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+}
+.demo-card .dc-line {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: var(--text-small); color: var(--color-foreground); padding: 3px 0;
+}
+.demo-card .dc-line .from {
+  font-weight: var(--fw-semibold); background: var(--color-default-flat);
+  border-radius: var(--radius-small); padding: 1px 8px;
+}
+.demo-card .dc-line .arrow { color: var(--text-subtle); }
+
+/* Category pack picker */
+.pack-grid { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+.pack-chip {
+  appearance: none; cursor: pointer; font-family: var(--font-sans);
+  display: inline-flex; align-items: center; gap: 7px; min-height: 44px;
+  background: var(--surface-raised); border: 1px solid var(--color-border);
+  color: var(--color-foreground); border-radius: var(--radius-bubble);
+  padding: 10px 16px; font-size: var(--text-small); font-weight: var(--fw-medium);
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.pack-chip .iconify { font-size: 17px; color: var(--text-muted); }
+.pack-chip.sel {
+  background: var(--color-primary-flat); border-color: var(--color-primary-400);
+  color: var(--color-primary-600); font-weight: var(--fw-semibold);
+}
+.pack-chip.sel .iconify { color: var(--color-primary); }
+
 @media (hover: hover) {
   .row:hover { background: var(--surface-raised); }
   .ibtn:hover, .m-row:hover, .sb-item:hover { background: var(--color-default-flat); }
@@ -1006,6 +1103,18 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
   <div class="m-row" data-media="photo"><span class="iconify lead" data-icon="solar:camera-linear"></span><span class="grow">Attach photo<span class="sub">Take or pick a picture</span></span></div>
 </div>
 
+<!-- ===== Category pack picker (first-run onboarding) ===== -->
+<div id="sheetPacks" class="sheet">
+  <div class="sheet-grab"></div>
+  <h3>What do you type all day?</h3>
+  <p style="color:var(--text-muted);font-size:var(--text-small);margin:0 0 var(--space-3)">Pick any that fit. We'll load shorthand for them — you can edit it all later.</p>
+  <div id="packGrid" class="pack-grid"></div>
+  <div class="btn-row">
+    <button id="packsSkip" class="btn ghost">Skip</button>
+    <button id="packsDone" class="btn primary">Add shorthand</button>
+  </div>
+</div>
+
 <!-- ===== Folder modal ===== -->
 <div id="modalFolder" class="modal"><div class="modal-card">
   <h3 id="folderModalTitle">New folder</h3>
@@ -1024,7 +1133,7 @@ body.searching #main { padding-top: calc(var(--bar-h) + var(--sat) + 64px + var(
 <!-- ===== Dictionary modal ===== -->
 <div id="modalDict" class="modal"><div class="modal-card">
   <h3>Shorthand dictionary</h3>
-  <p style="color:var(--text-muted);font-size:var(--text-small);margin:0 0 var(--space-3)">Shorthand expands while you type. Values can use <b>{date}</b>, <b>{time}</b>, <b>{day}</b>, <b>{datetime}</b>.</p>
+  <p style="color:var(--text-muted);font-size:var(--text-small);margin:0 0 var(--space-3)">Shorthand expands while you type. Values can use <b>{date}</b>, <b>{time}</b>, <b>{day}</b>, <b>{datetime}</b> — add a day offset like <b>{date+1}</b> for tomorrow.</p>
   <div id="dictList"></div>
   <div class="inline-add">
     <input id="dictKey" class="narrow" type="text" placeholder="mtg" autocomplete="off" style="flex-basis:96px">
@@ -1174,8 +1283,33 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':
 const linkify = (escaped) => escaped.replace(/(https?:\/\/[^\s<>"']+)/gi,
   '<a href="$1" target="_blank" rel="noopener" onclick="event.stopPropagation()">$1</a>');
 
-/* First-run seed: default tags + a few shorthand examples */
-if (!lsGet(LS.seeded, false)) {
+/* ---------------- First-run seed & onboarding state ----------------
+   rapid_seeded_v1 used to be a plain boolean. It is now a versioned
+   object so later onboarding steps can layer in without re-running the
+   whole flow. Anyone carrying the old `true` is treated as fully
+   onboarded — they never see the demo, the card, or the pack picker. */
+const SEED_DEFAULTS = {
+  v: 2,
+  baseSeed: false,   // default tags + starter shorthand written
+  demoDone: false,   // first-send demo note created
+  cardDone: false,   // "what just happened" card shown or dismissed
+  packsDone: false,  // category picker answered or skipped
+  demoNoteId: null   // ties the card to that one note
+};
+let seed = (function readSeed() {
+  const raw = lsGet(LS.seeded, null);
+  if (raw === true) {
+    // Existing user from the boolean era: nothing to show them.
+    return Object.assign({}, SEED_DEFAULTS, {
+      baseSeed: true, demoDone: true, cardDone: true, packsDone: true
+    });
+  }
+  if (raw && typeof raw === 'object') return Object.assign({}, SEED_DEFAULTS, raw);
+  return Object.assign({}, SEED_DEFAULTS);
+})();
+const saveSeed = () => lsSet(LS.seeded, seed);
+
+if (!seed.baseSeed) {
   cats = [
     { id: uid(), name: 'To Do', prefix: '!' },
     { id: uid(), name: 'Question', prefix: '?' },
@@ -1183,12 +1317,14 @@ if (!lsGet(LS.seeded, false)) {
   ];
   dict = [
     { k: 'mtg', v: 'meeting', folders: null },
-    { k: 'tmrw', v: 'tomorrow', folders: null },
+    { k: 'tmrw', v: '{date+1}', folders: null },
     { k: 'asap', v: 'as soon as possible', folders: null },
     { k: 'dt', v: '{date}', folders: null }
   ];
-  saveCats(); saveDict(); lsSet(LS.seeded, true);
+  seed.baseSeed = true;
+  saveCats(); saveDict();
 }
+saveSeed(); // also persists the boolean → object migration
 
 /* ---------------- IndexedDB media store ---------------- */
 let mediaDB = null;
@@ -1293,20 +1429,35 @@ function dictInScope(d, folderId) {
   }
   return false;
 }
+/* Live tokens, with optional day offsets: {date}, {date+1}, {day-2}, …
+   An offset form drops the year and gains a weekday ("Thu 30 Jul") — a
+   relative date is only useful if you can see which day it lands on.
+   The plain forms keep their original output so existing shorthand
+   (like the seeded `dt` → {date}) expands exactly as it always has. */
 function liveTokens(v) {
-  const n = new Date();
-  return String(v)
-    .split('{date}').join(n.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }))
-    .split('{time}').join(n.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }))
-    .split('{day}').join(n.toLocaleDateString(undefined, { weekday: 'long' }))
-    .split('{datetime}').join(n.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' + n.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }));
+  return String(v).replace(/\{(date|time|day|datetime)([+-]\d+)?\}/g, (m, kind, off) => {
+    const n = new Date();
+    const days = off ? parseInt(off, 10) : 0;
+    if (days) n.setDate(n.getDate() + days);
+    const time = () => n.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    if (kind === 'time') return time();
+    if (kind === 'day') return n.toLocaleDateString(undefined, { weekday: 'long' });
+    if (kind === 'datetime') {
+      return n.toLocaleDateString(undefined, days ? { weekday: 'short', day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short' }) + ' ' + time();
+    }
+    return n.toLocaleDateString(undefined, days
+      ? { weekday: 'short', day: 'numeric', month: 'short' }
+      : { day: 'numeric', month: 'short', year: 'numeric' });
+  });
 }
 function dictMapFor(folderId) {
   const map = {};
   dict.forEach((d) => { if (dictInScope(d, folderId)) map[d.k.toLowerCase()] = d.v; });
   return map;
 }
-function expandShorthand(text, folderId) {
+/* `hits` is an optional out-array: every replacement pushes {k, v} onto it
+   so callers can describe what actually happened (see the onboarding card). */
+function expandShorthand(text, folderId, hits) {
   if (!shorthandOn(folderId)) return text;
   const map = dictMapFor(folderId);
   if (!Object.keys(map).length) return text;
@@ -1314,11 +1465,15 @@ function expandShorthand(text, folderId) {
     const m = w.match(/^([\w'-]+)([.,!?;:)]*)$/);
     if (!m) return w;
     const rep = map[m[1].toLowerCase()];
-    return rep != null ? liveTokens(rep) + m[2] : w;
+    if (rep == null) return w;
+    const out = liveTokens(rep);
+    if (hits) hits.push({ k: m[1], v: out });
+    return out + m[2];
   });
 }
-/* Category prefixes stripped from the front, repeatedly (e.g. "!? call mom") */
-function classifyText(raw) {
+/* Category prefixes stripped from the front, repeatedly (e.g. "!? call mom").
+   `hits` is an optional out-array of {prefix, catName}. */
+function classifyText(raw, hits) {
   let text = raw.trim();
   const catIds = [];
   const prefixed = cats.filter((c) => c.prefix).sort((a, b) => b.prefix.length - a.prefix.length);
@@ -1328,7 +1483,10 @@ function classifyText(raw) {
     for (const c of prefixed) {
       if (text.startsWith(c.prefix)) {
         text = text.slice(c.prefix.length).trim();
-        if (!catIds.includes(c.id)) catIds.push(c.id);
+        if (!catIds.includes(c.id)) {
+          catIds.push(c.id);
+          if (hits) hits.push({ prefix: c.prefix, catName: c.name });
+        }
         matched = true;
         break;
       }
@@ -1336,11 +1494,12 @@ function classifyText(raw) {
   }
   return { text, catIds };
 }
-function addQuickEntry(raw, opts) {
-  const { text, catIds } = classifyText(raw);
+/* `meta` is an optional { dictHits: [], prefixHits: [] } filled in place. */
+function addQuickEntry(raw, opts, meta) {
+  const { text, catIds } = classifyText(raw, meta && meta.prefixHits);
   const e = Object.assign({
     id: uid(), folderId: currentFolder, catIds, ts: Date.now(),
-    title: '', content: expandShorthand(text, currentFolder), richHTML: false
+    title: '', content: expandShorthand(text, currentFolder, meta && meta.dictHits), richHTML: false
   }, opts || {});
   entries.unshift(e);
   saveEntries();
@@ -1518,7 +1677,12 @@ function renderHome() {
   if (!recents.length) {
     rl.innerHTML = '<div class="empty-note">No notes yet. Log your first thought below.</div>';
   } else {
-    recents.forEach((e) => rl.appendChild(buildRow(e, true)));
+    recents.forEach((e) => {
+      rl.appendChild(buildRow(e, true));
+      // the one-time onboarding card rides directly under its own demo note
+      const card = buildDemoCard(e.id);
+      if (card) rl.appendChild(card);
+    });
   }
 
   renderAICard();
@@ -1887,6 +2051,7 @@ function openEditor(id) {
     editingId = null;
     $('editorView').classList.add('hidden');
     render();
+    if (packsPending) maybeOpenPacks();
   });
 }
 $('edBack').addEventListener('click', navBack);
@@ -2338,6 +2503,7 @@ async function renderEdMedia() {
 function submitLog() {
   const raw = $('logInput').value.trim();
   if (!raw) return;
+  if (demoArmed) { runDemoSend(); return; }
   addQuickEntry(raw);
   $('logInput').value = '';
   render();
@@ -3162,6 +3328,258 @@ function handleShareTarget() {
   toast('Shared note saved.');
 }
 
+/* ================================================================
+   First-run onboarding — the first 60 seconds
+   A pre-filled demo capture that visibly transforms on send, a
+   one-time card naming exactly what happened to it, then a category
+   picker that loads a real dictionary. All of it runs once, gated on
+   the `seed` object; existing users never see any of it.
+   ================================================================ */
+
+const DEMO_TEXT = '!mtg w sarah tmrw';
+
+/* Nine-to-ten single-token abbreviations per pack — word-level lookup
+   only matches single tokens, so no multi-word keys. */
+const PACKS = [
+  { id: 'work', name: 'Work & meetings', icon: 'solar:case-minimalistic-linear', words: [
+    ['1:1', 'one-on-one'], ['eod', 'end of day'], ['eow', 'end of week'],
+    ['fyi', 'for your information'], ['ooo', 'out of office'], ['wfh', 'work from home'],
+    ['retro', 'retrospective'], ['wip', 'work in progress'], ['ptal', 'please take a look']
+  ] },
+  { id: 'study', name: 'Study', icon: 'solar:notebook-linear', words: [
+    ['hw', 'homework'], ['lec', 'lecture'], ['assn', 'assignment'], ['prof', 'professor'],
+    ['ta', 'teaching assistant'], ['syl', 'syllabus'], ['rvw', 'review session'],
+    ['def', 'definition'], ['grp', 'group project']
+  ] },
+  { id: 'health', name: 'Health', icon: 'solar:heart-pulse-linear', words: [
+    ['appt', 'appointment'], ['rx', 'prescription'], ['bp', 'blood pressure'],
+    ['meds', 'medications'], ['fu', 'follow-up'], ['sx', 'symptoms'],
+    ['vax', 'vaccination'], ['wt', 'weight'], ['dr', 'doctor'], ['pt', 'physical therapy']
+  ] },
+  { id: 'dev', name: 'Dev', icon: 'solar:code-linear', words: [
+    ['pr', 'pull request'], ['bg', 'bug'], ['ftr', 'feature'], ['refac', 'refactor'],
+    ['env', 'environment'], ['repo', 'repository'], ['db', 'database'],
+    ['cfg', 'configuration'], ['dep', 'dependency'], ['ver', 'version']
+  ] },
+  { id: 'family', name: 'Family & errands', icon: 'solar:home-smile-linear', words: [
+    ['gro', 'groceries'], ['pkup', 'pickup'], ['bday', 'birthday'], ['errnd', 'errand'],
+    ['sched', 'schedule'], ['rmdr', 'reminder'], ['schl', 'school'],
+    ['clean', 'cleaning'], ['pkg', 'package']
+  ] }
+];
+
+let demoArmed = false;      // dock is pre-filled and waiting for the first send
+let demoMeta = null;        // {dictHits, prefixHits} from the demo send
+let packsPending = false;   // picker deferred because something else was open
+
+const reducedMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ----- 1. the pre-filled demo capture ----- */
+function startDemo() {
+  demoArmed = true;
+  document.body.classList.add('onboarding-demo');
+  const inp = $('logInput');
+  inp.value = DEMO_TEXT;
+  // Best-effort: raises the keyboard on Android/desktop. iOS blocks focus
+  // without a user gesture, so the pulsing send button carries it there.
+  try { inp.focus(); } catch (err) {}
+}
+function endDemo() {
+  demoArmed = false;
+  document.body.classList.remove('onboarding-demo');
+}
+
+/* Play the transformation over the dock, then commit the note. */
+function runDemoSend() {
+  const inp = $('logInput');
+  const raw = inp.value.trim();
+  const meta = { dictHits: [], prefixHits: [] };
+
+  const commit = () => {
+    const e = addQuickEntry(raw, null, meta);
+    inp.value = '';
+    demoMeta = meta;
+    seed.demoDone = true;
+    seed.demoNoteId = e.id;
+    saveSeed();
+    endDemo();
+    render();
+    armCardDismissal();
+  };
+
+  // Resolve the same way the real send will, so the animation can't drift
+  // from the committed note: preview off a throwaway meta first.
+  const preview = { dictHits: [], prefixHits: [] };
+  const classified = classifyText(raw, preview.prefixHits);
+  const expanded = expandShorthand(classified.text, currentFolder, preview.dictHits);
+
+  if (reducedMotion() || !preview.dictHits.length) { commit(); return; }
+
+  const r = inp.getBoundingClientRect();
+  const ghost = document.createElement('div');
+  ghost.id = 'demoGhost';
+  ghost.style.left = r.left + 'px';
+  ghost.style.top = r.top + 'px';
+  ghost.style.width = r.width + 'px';
+  ghost.style.height = r.height + 'px';
+
+  // one span per original token, so each transformation is visible in place
+  const prefixes = preview.prefixHits.map((h) => h.prefix);
+  const spans = [];
+  raw.split(/\s+/).forEach((tok) => {
+    let body = tok;
+    prefixes.forEach((p) => { if (body.startsWith(p)) {
+      const s = document.createElement('span');
+      s.className = 'tk pfx';
+      s.textContent = p;
+      ghost.appendChild(s);
+      spans.push({ el: s, kind: 'prefix' });
+      body = body.slice(p.length);
+    } });
+    if (!body) return;
+    const hit = preview.dictHits.find((h) => h.k.toLowerCase() === body.toLowerCase());
+    const s = document.createElement('span');
+    s.className = 'tk';
+    s.textContent = body;
+    ghost.appendChild(s);
+    spans.push({ el: s, kind: hit ? 'dict' : 'plain', to: hit && hit.v });
+  });
+
+  const pill = document.createElement('span');
+  pill.className = 'tag-pill';
+  pill.textContent = preview.prefixHits.length ? preview.prefixHits[0].catName : '';
+  if (preview.prefixHits.length) ghost.appendChild(pill);
+
+  inp.style.color = 'transparent';
+  document.body.appendChild(ghost);
+
+  // stagger each dictionary swap, then peel the prefix off into a tag chip
+  const swaps = spans.filter((s) => s.kind === 'dict');
+  let t = 260;
+  swaps.forEach((s) => {
+    setTimeout(() => {
+      s.el.textContent = s.to;
+      s.el.classList.add('swap');
+    }, t);
+    t += 320;
+  });
+  setTimeout(() => {
+    spans.filter((s) => s.kind === 'prefix').forEach((s) => s.el.classList.add('peel'));
+    pill.classList.add('in');
+  }, t);
+  setTimeout(() => { ghost.classList.add('fade'); }, t + 520);
+  setTimeout(() => {
+    ghost.remove();
+    inp.style.color = '';
+    commit();
+  }, t + 800);
+}
+
+/* ----- 2. the "what just happened" card ----- */
+/* Inline list content, not an overlay — deliberately not registered with
+   the nav stack, so the back gesture on Home behaves exactly as before.
+   Tied to one note, shown once, never generalized into a "teach any
+   shortcut" mechanism (that's a separate, later feature). */
+function buildDemoCard(entryId) {
+  if (seed.cardDone || !seed.demoNoteId || seed.demoNoteId !== entryId) return null;
+  if (!demoMeta) return null;
+
+  const lines = []
+    .concat(demoMeta.dictHits.map((h) => ({ from: h.k, to: h.v })))
+    .concat(demoMeta.prefixHits.map((h) => ({ from: h.prefix, to: h.catName + ' tag' })));
+  if (!lines.length) return null;
+
+  const card = document.createElement('div');
+  card.className = 'demo-card';
+  card.id = 'demoCard';
+  card.innerHTML =
+    '<div class="dc-head">' +
+      '<span class="iconify" data-icon="solar:magic-stick-3-linear"></span>' +
+      '<span class="grow">What just happened</span>' +
+      '<button class="dc-close" aria-label="Dismiss"><span class="iconify" data-icon="solar:close-circle-linear"></span></button>' +
+    '</div>' +
+    lines.map((l) =>
+      '<div class="dc-line"><span class="from">' + esc(l.from) + '</span>' +
+      '<span class="arrow">→</span><span>' + esc(l.to) + '</span></div>'
+    ).join('');
+
+  card.addEventListener('click', dismissDemoCard);
+  return card;
+}
+function dismissDemoCard() {
+  if (seed.cardDone) return;
+  seed.cardDone = true;
+  saveSeed();
+  detachCardDismissal();
+  render();
+  maybeOpenPacks();
+}
+/* The card must never block the list: anything else the user does clears it. */
+function onCardEscape(ev) {
+  if (ev.target && ev.target.closest && ev.target.closest('#demoCard')) return;
+  dismissDemoCard();
+}
+function armCardDismissal() {
+  if (seed.cardDone) return;
+  setTimeout(() => {
+    if (seed.cardDone) return;
+    document.addEventListener('click', onCardEscape, true);
+    $('logInput').addEventListener('input', dismissDemoCard);
+  }, 0);
+}
+function detachCardDismissal() {
+  document.removeEventListener('click', onCardEscape, true);
+  $('logInput').removeEventListener('input', dismissDemoCard);
+}
+
+/* ----- 3. the category pack picker (this one IS an overlay) ----- */
+const packsChosen = new Set();
+function renderPackGrid() {
+  const box = $('packGrid');
+  box.innerHTML = '';
+  PACKS.forEach((p) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'pack-chip' + (packsChosen.has(p.id) ? ' sel' : '');
+    b.innerHTML = '<span class="iconify" data-icon="' + p.icon + '"></span>' + esc(p.name);
+    b.addEventListener('click', () => {
+      if (packsChosen.has(p.id)) packsChosen.delete(p.id); else packsChosen.add(p.id);
+      renderPackGrid();
+    });
+    box.appendChild(b);
+  });
+}
+function maybeOpenPacks() {
+  if (seed.packsDone || !seed.cardDone) return;
+  // never stack this on top of the editor or another overlay
+  if (editingId || sidebarOpen || document.querySelector('.modal.show, .sheet.show, #moreMenu.show')) {
+    packsPending = true;
+    return;
+  }
+  packsPending = false;
+  packsChosen.clear();
+  renderPackGrid();
+  openOverlay($('sheetPacks'));
+  // any close path — confirm, skip, back gesture, drag — ends onboarding
+  seed.packsDone = true;
+  saveSeed();
+}
+$('packsSkip').addEventListener('click', () => unwindNav(1));
+$('packsDone').addEventListener('click', () => {
+  let added = 0;
+  PACKS.filter((p) => packsChosen.has(p.id)).forEach((p) => {
+    p.words.forEach(([k, v]) => {
+      // a user's own shorthand always wins
+      if (dict.some((d) => d.k.toLowerCase() === k.toLowerCase())) return;
+      dict.push({ k, v, folders: null });
+      added++;
+    });
+  });
+  if (added) saveDict();
+  unwindNav(1);
+  toast(added ? dict.length + ' shortcuts ready.' : 'No new shortcuts added.');
+});
+
 /* ---------------- Boot ---------------- */
 (async function init() {
   await openMediaDB();
@@ -3169,6 +3587,11 @@ function handleShareTarget() {
   handleShareTarget();
   render();
   vvFix();
+  if (!seed.demoDone) startDemo();
+  else if (!seed.cardDone) {
+    // reloaded before the card was dismissed — it's one-time, so retire it
+    seed.cardDone = true; saveSeed(); maybeOpenPacks();
+  } else if (!seed.packsDone) maybeOpenPacks();
   checkAiBalance();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});

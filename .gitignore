@@ -1,0 +1,7 @@
+# Local planning / briefing docs — not part of the shipped app
+phase-0-cold-start-prompt.md
+PROJECT-CONTEXT.md
+ONBOARDING.md
+
+# Claude Code workspace settings
+.claude/
